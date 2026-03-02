@@ -25,18 +25,10 @@ function protocolLabel(risk: RiskLevel): string {
   }
 }
 
-function gradeColor(grade: Grade): string {
-  switch (grade) {
-    case 'A+':
-    case 'A':
-      return chalk.green.bold(grade);
-    case 'B':
-      return chalk.yellow.bold(grade);
-    case 'C':
-    case 'D':
-    case 'F':
-      return chalk.red.bold(grade);
-  }
+function gradeColor(g: Grade): string {
+  if (g.startsWith('A')) return chalk.green.bold(g);
+  if (g.startsWith('B')) return chalk.yellow.bold(g);
+  return chalk.red.bold(g);
 }
 
 export function formatTerminal(result: GradedResult): string {

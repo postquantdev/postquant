@@ -7,6 +7,8 @@ function makeGradedResult(overrides: Partial<GradedResult> = {}): GradedResult {
     host: 'example.com',
     port: 443,
     grade: 'C',
+    baseGrade: 'C',
+    modifier: '',
     findings: [
       {
         component: 'protocol',
@@ -108,7 +110,7 @@ describe('formatTerminal', () => {
 
   it('shows A+ grade correctly', () => {
     const output = stripAnsi(
-      formatTerminal(makeGradedResult({ grade: 'A+' })),
+      formatTerminal(makeGradedResult({ grade: 'A+', baseGrade: 'A+', modifier: '' })),
     );
     expect(output).toContain('A+');
   });

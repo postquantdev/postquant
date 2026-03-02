@@ -7,6 +7,8 @@ function makeGradedResult(overrides: Partial<GradedResult> = {}): GradedResult {
     host: 'example.com',
     port: 443,
     grade: 'C',
+    baseGrade: 'C',
+    modifier: '',
     findings: [
       {
         component: 'protocol',
@@ -73,9 +75,17 @@ describe('formatJson', () => {
     expect(parsed.results[0].summary.critical).toBe(2);
   });
 
+  it('includes baseGrade and modifier in output', () => {
+    const output = formatJson([makeGradedResult({ grade: 'C+', baseGrade: 'C', modifier: '+' })]);
+    const parsed = JSON.parse(output);
+    expect(parsed.results[0].grade).toBe('C+');
+    expect(parsed.results[0].baseGrade).toBe('C');
+    expect(parsed.results[0].modifier).toBe('+');
+  });
+
   it('handles multiple results', () => {
     const r1 = makeGradedResult({ host: 'a.com' });
-    const r2 = makeGradedResult({ host: 'b.com', grade: 'D' });
+    const r2 = makeGradedResult({ host: 'b.com', grade: 'D', baseGrade: 'D', modifier: '' });
     const output = formatJson([r1, r2]);
     const parsed = JSON.parse(output);
     expect(parsed.results).toHaveLength(2);

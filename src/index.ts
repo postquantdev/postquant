@@ -2,9 +2,9 @@
 
 import { Command } from 'commander';
 import { scanCommand } from './commands/scan.js';
-import type { OutputFormat, Grade } from './types/index.js';
+import type { OutputFormat, BaseGrade } from './types/index.js';
 
-const VALID_GRADES: Grade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
+const VALID_GRADES: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 
 const program = new Command();
 
@@ -33,7 +33,7 @@ program
       process.exit(1);
     }
 
-    const failGrade = opts.failGrade as Grade;
+    const failGrade = opts.failGrade as BaseGrade;
     if (!VALID_GRADES.includes(failGrade)) {
       console.error(
         `Invalid fail-grade: ${failGrade}. Use one of: ${VALID_GRADES.join(', ')}`,

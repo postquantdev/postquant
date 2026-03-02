@@ -1,6 +1,10 @@
 export type RiskLevel = 'critical' | 'moderate' | 'safe';
 
-export type Grade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type Grade = 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'D-' | 'F';
+
+export type BaseGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+
+export type GradeModifier = '+' | '' | '-';
 
 export type ComponentType =
   | 'protocol'
@@ -60,6 +64,8 @@ export interface GradedResult {
   host: string;
   port: number;
   grade: Grade;
+  baseGrade: BaseGrade;
+  modifier: GradeModifier;
   findings: ClassifiedFinding[];
   migrationNotes: string[];
   summary: {
@@ -80,6 +86,6 @@ export interface ScanOptions {
   format: OutputFormat;
   timeout: number;
   verbose: boolean;
-  failGrade: Grade;
+  failGrade: BaseGrade;
   file?: string;
 }
