@@ -1,0 +1,34 @@
+{
+  "name": "postquant",
+  "version": "0.0.1",
+  "description": "Scan your code and infrastructure for quantum-vulnerable cryptography.",
+  "main": "index.js",
+  "bin": {
+    "postquant": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Tests coming soon\" && exit 0"
+  },
+  "keywords": [
+    "post-quantum",
+    "cryptography",
+    "pqc",
+    "security",
+    "audit",
+    "quantum",
+    "nist",
+    "ml-kem",
+    "ml-dsa",
+    "scanner"
+  ],
+  "author": "PostQuant <hello@postquant.dev> (https://postquant.dev)",
+  "license": "MIT",
+  "homepage": "https://postquant.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/postquantdev/postquant.git"
+  },
+  "bugs": {
+    "url": "https://github.com/postquantdev/postquant/issues"
+  }
+}
