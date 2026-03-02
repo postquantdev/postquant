@@ -38,3 +38,6 @@ npm-debug.log*
 # Go
 go.sum
 CLAUDE.md
+
+# Plans
+docs/plans/
