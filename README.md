@@ -1,62 +1,102 @@
-# 🔐 PostQuant
+# PostQuant
 
-**Scan your code and infrastructure for quantum-vulnerable cryptography.**
+**Find quantum-vulnerable cryptography in your TLS endpoints.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/postquant)](https://www.npmjs.com/package/postquant)
 
-PostQuant finds RSA, ECC, ECDH, ECDSA, and other quantum-vulnerable cryptography in your codebase and infrastructure. It tells you exactly what's at risk and how to migrate to NIST post-quantum standards (ML-KEM, ML-DSA, SLH-DSA).
+PostQuant scans TLS connections and reports which algorithms are vulnerable to quantum attacks. It grades endpoints A+ through F and tells you what to migrate to.
 
-> ⚠️ **Early development.** The scanner is being built. Star this repo to follow progress.
+> **Early development.** The TLS scanner works. Code scanning and CBOM generation are planned.
 
-## Why This Matters
+## Why
 
-NIST has set hard deadlines. Quantum-vulnerable algorithms will be **deprecated by 2030** and **disallowed by 2035**. The "harvest now, decrypt later" threat means adversaries are already collecting encrypted data today to crack with quantum computers tomorrow.
+NIST will **deprecate** RSA, ECC, and other quantum-vulnerable algorithms by **2030** and **disallow** them by **2035**. Adversaries are already harvesting encrypted traffic to decrypt later with quantum computers.
 
-Most organizations don't even know where their cryptography lives. PostQuant finds it for you.
-
-## What It Will Do
-
-- 🔍 **TLS Scanner** . Probe any endpoint and grade its quantum readiness
-- 📝 **Code Scanner** . Detect crypto calls across Python, JavaScript, Go, and Java
-- 📋 **CBOM Generator** . Produce a Cryptographic Bill of Materials
-- 🎯 **Risk Scoring** . Prioritize findings by sensitivity, exposure, and data lifespan
-- 🗺️ **Migration Roadmap** . Actionable steps to reach quantum safety
+PostQuant shows you what's exposed.
 
 ## Quick Start
 
 ```bash
-# Install (coming soon)
-npm install -g postquant
+npx postquant scan example.com
+```
 
-# Scan a TLS endpoint
-postquant scan tls example.com
+Output:
 
-# Scan a codebase
-postquant scan code ./my-project
+```
+  Overall Grade:  C
 
-# Generate a report
-postquant report --format pdf
+  Certificate
+    Algorithm:    ECDSA P-256          🔴 Quantum Vulnerable
+
+  Connection
+    Protocol:     TLS 1.3              🟢 Current
+    Key Exchange: X25519               🔴 Quantum Vulnerable
+    Cipher:       AES-256-GCM          🟢 Quantum Safe
+```
+
+Most sites today score C or D. That's expected — almost nobody has deployed post-quantum cryptography yet.
+
+## Usage
+
+```bash
+# Scan a single host
+postquant scan example.com
+
+# Scan with explicit port
+postquant scan example.com:8443
+
+# Scan multiple hosts
+postquant scan example.com api.example.com
+
+# JSON output
+postquant scan example.com --format json
+
+# Read hosts from a file (one per line)
+postquant scan --file hosts.txt
+
+# Set connection timeout
+postquant scan example.com --timeout 5000
+```
+
+## Grading
+
+| Grade | Meaning |
+|-------|---------|
+| **A+** | All quantum-safe algorithms (PQC key exchange + signatures) |
+| **A** | Quantum-safe with minor observations |
+| **B** | Mostly safe, some moderate-risk items (e.g., AES-128) |
+| **C** | Quantum-vulnerable key exchange or signatures, but TLS 1.3 |
+| **D** | Multiple quantum-vulnerable components |
+| **F** | Critical vulnerabilities + legacy protocols |
+
+## Development
+
+```bash
+npm install        # Install dependencies
+npm run build      # Compile TypeScript
+npm test           # Run tests
+npm run dev -- scan example.com   # Run from source
 ```
 
 ## Roadmap
 
 | Phase | Target | Status |
 |-------|--------|--------|
-| TLS endpoint scanner | March 2026 | 🔨 Building |
-| Code scanner (4 languages) | April 2026 | 📋 Planned |
-| CBOM generation + risk scoring | May 2026 | 📋 Planned |
-| Web dashboard + enterprise tier | June 2026 | 📋 Planned |
+| TLS scanner CLI | March 2026 | Building |
+| Code scanner (Python, JS, Go, Java) | April 2026 | Planned |
+| CBOM generation + risk scoring | May 2026 | Planned |
+| Web dashboard | June 2026 | Planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Security
 
-Found a vulnerability? See [SECURITY.md](SECURITY.md) for responsible disclosure.
+See [SECURITY.md](SECURITY.md).
 
 ## License
 
@@ -64,6 +104,6 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) for responsible disclosure
 
 ## Links
 
-- 🌐 [postquant.dev](https://postquant.dev)
-- 🐦 [@postquantdev](https://x.com/postquantdev)
-- 📦 [npm](https://www.npmjs.com/package/postquant)
+- [postquant.dev](https://postquant.dev)
+- [@postquantdev](https://x.com/postquantdev)
+- [npm](https://www.npmjs.com/package/postquant)

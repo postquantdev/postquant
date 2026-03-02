@@ -1,11 +1,14 @@
 # PostQuant Roadmap
 
 ## Phase 1: TLS Scanner (March 2026)
-- [ ] CLI framework and argument parsing
-- [ ] TLS endpoint connection and cipher suite detection
-- [ ] Quantum vulnerability classification (red/yellow/green)
-- [ ] Terminal output with color-coded grades
-- [ ] JSON and text output formats
+- [x] CLI framework and argument parsing (commander)
+- [x] TypeScript project setup (ESM, strict mode)
+- [x] Quantum vulnerability classification (critical/moderate/safe)
+- [x] Grade calculation (A+ through F)
+- [ ] TLS endpoint connection and cipher suite extraction
+- [ ] Terminal output with color-coded grades (chalk)
+- [ ] JSON output format
+- [ ] Multi-host scanning and file input
 
 ## Phase 2: Code Scanner (April 2026)
 - [ ] Python crypto detection (cryptography, PyCryptodome, hashlib)
