@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import type { GradedResult, RiskLevel, Grade } from '../types/index.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 function riskIcon(risk: RiskLevel): string {
   switch (risk) {

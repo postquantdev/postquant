@@ -1,6 +1,6 @@
 {
   "name": "postquant",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scan your code and infrastructure for quantum-vulnerable cryptography.",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,8 @@
     "postquant": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/index.js",
+    "prepublishOnly": "npm run build",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",

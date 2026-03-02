@@ -11,7 +11,7 @@ function getVersion(): string {
     );
     return pkg.version;
   } catch {
-    return '0.1.0';
+    return '0.1.1';
   }
 }
 
