@@ -22,6 +22,8 @@ export function formatJson(results: GradedResult[]): string {
     results: results.map((r) => ({
       target: `${r.host}:${r.port}`,
       grade: r.grade,
+      baseGrade: r.baseGrade,
+      modifier: r.modifier,
       findings: r.findings,
       summary: r.summary,
       migrationNotes: r.migrationNotes,

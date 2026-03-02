@@ -24,7 +24,7 @@ npx postquant scan example.com
 Output:
 
 ```
-  Overall Grade:  C
+  Overall Grade:  C+
 
   Certificate
     Algorithm:    ECDSA P-256          🔴 Quantum Vulnerable
@@ -32,10 +32,11 @@ Output:
   Connection
     Protocol:     TLS 1.3              🟢 Current
     Key Exchange: X25519               🔴 Quantum Vulnerable
-    Cipher:       AES-256-GCM          🟢 Quantum Safe
+    Cipher:       AES-256              🟢 Quantum Safe
+    MAC:          SHA-384              🟢 Quantum Safe
 ```
 
-Most sites today score C or D. That's expected — almost nobody has deployed post-quantum cryptography yet.
+Most sites today score C+ or C. That's expected — almost nobody has deployed post-quantum cryptography yet.
 
 ## Usage
 
@@ -66,9 +67,13 @@ postquant scan example.com --timeout 5000
 | **A+** | All quantum-safe algorithms (PQC key exchange + signatures) |
 | **A** | Quantum-safe with minor observations |
 | **B** | Mostly safe, some moderate-risk items (e.g., AES-128) |
-| **C** | Quantum-vulnerable key exchange or signatures, but TLS 1.3 |
+| **C+** | Quantum-vulnerable, but best classical crypto (AES-256, SHA-384) |
+| **C** | Quantum-vulnerable with some moderate items (SHA-256) |
+| **C-** | Quantum-vulnerable with multiple moderate items |
 | **D** | Multiple quantum-vulnerable components |
 | **F** | Critical vulnerabilities + legacy protocols |
+
++/- modifiers reflect classical crypto hygiene within each grade band.
 
 ## Development
 

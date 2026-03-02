@@ -2,11 +2,13 @@ import type {
   ClassifiedResult,
   GradedResult,
   Grade,
+  BaseGrade,
+  GradeModifier,
 } from '../types/index.js';
 
 const PQC_KEYWORDS = ['KYBER', 'MLKEM', 'ML-KEM', 'ML-DSA', 'SLH-DSA', 'HQC'];
 
-const GRADE_ORDER: Grade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
+const BASE_GRADE_ORDER: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 
 export function grade(classified: ClassifiedResult): GradedResult {
   const { findings } = classified;
@@ -18,22 +20,34 @@ export function grade(classified: ClassifiedResult): GradedResult {
   const protocolFinding = findings.find((f) => f.component === 'protocol');
   const hashFinding = findings.find((f) => f.component === 'hash');
 
-  let computedGrade: Grade;
+  let baseGrade: BaseGrade;
 
   if (protocolFinding?.risk === 'critical' || hashFinding?.risk === 'critical') {
-    computedGrade = 'F';
+    baseGrade = 'F';
   } else if (critical.length >= 3) {
-    computedGrade = 'D';
+    baseGrade = 'D';
   } else if (critical.length >= 1) {
-    computedGrade = 'C';
+    baseGrade = 'C';
   } else if (moderate.length >= 1) {
-    computedGrade = 'B';
+    baseGrade = 'B';
   } else {
     const hasPqc = findings.some((f) =>
       PQC_KEYWORDS.some((kw) => f.algorithm.toUpperCase().includes(kw)),
     );
-    computedGrade = hasPqc ? 'A+' : 'A';
+    baseGrade = hasPqc ? 'A+' : 'A';
   }
+
+  // Compute modifier: A+, A, and F get no modifier
+  let modifier: GradeModifier = '';
+  if (baseGrade !== 'A+' && baseGrade !== 'A' && baseGrade !== 'F') {
+    if (moderate.length === 0) {
+      modifier = '+';
+    } else if (moderate.length >= 2) {
+      modifier = '-';
+    }
+  }
+
+  const displayGrade = (baseGrade + modifier) as Grade;
 
   const migrationNotes = findings
     .filter((f) => f.migration)
@@ -42,7 +56,9 @@ export function grade(classified: ClassifiedResult): GradedResult {
   return {
     host: classified.host,
     port: classified.port,
-    grade: computedGrade,
+    grade: displayGrade,
+    baseGrade,
+    modifier,
     findings,
     migrationNotes,
     summary: {
@@ -54,8 +70,8 @@ export function grade(classified: ClassifiedResult): GradedResult {
   };
 }
 
-export function shouldFailForGrade(actual: Grade, threshold: Grade): boolean {
-  const actualIndex = GRADE_ORDER.indexOf(actual);
-  const thresholdIndex = GRADE_ORDER.indexOf(threshold);
+export function shouldFailForGrade(actual: BaseGrade, threshold: BaseGrade): boolean {
+  const actualIndex = BASE_GRADE_ORDER.indexOf(actual);
+  const thresholdIndex = BASE_GRADE_ORDER.indexOf(threshold);
   return actualIndex >= thresholdIndex;
 }

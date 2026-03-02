@@ -5,7 +5,7 @@ import { classify } from '../scanner/classifier.js';
 import { grade, shouldFailForGrade } from '../scanner/grader.js';
 import { formatTerminal } from '../output/terminal.js';
 import { formatJson } from '../output/json.js';
-import type { GradedResult, ScanOptions, Grade } from '../types/index.js';
+import type { GradedResult, ScanOptions, BaseGrade } from '../types/index.js';
 
 interface ParsedHost {
   host: string;
@@ -97,13 +97,13 @@ export async function scanCommand(
   return 0;
 }
 
-const GRADE_ORDER: Grade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
+const GRADE_ORDER: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 
-function getWorstGrade(results: GradedResult[]): Grade | null {
+function getWorstGrade(results: GradedResult[]): BaseGrade | null {
   if (results.length === 0) return null;
   let worst = 0;
   for (const r of results) {
-    const idx = GRADE_ORDER.indexOf(r.grade);
+    const idx = GRADE_ORDER.indexOf(r.baseGrade);
     if (idx > worst) worst = idx;
   }
   return GRADE_ORDER[worst];
