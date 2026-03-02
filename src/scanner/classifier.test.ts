@@ -146,12 +146,35 @@ describe('classify', () => {
       expect(finding?.risk).toBe('safe');
     });
 
-    it('classifies null ephemeral key info as critical (fallback)', () => {
+    it('infers X25519 for TLS 1.3 when ephemeral key info is empty', () => {
       const scan = makeScanResult();
       scan.ephemeralKeyInfo = null;
       const result = classify(scan);
       const finding = result.findings.find((f) => f.component === 'keyExchange');
       expect(finding?.risk).toBe('critical');
+      expect(finding?.algorithm).toBe('X25519 (inferred)');
+    });
+
+    it('infers ECDHE from TLS 1.2 cipher name when ephemeral key info is empty', () => {
+      const scan = makeScanResult();
+      scan.protocol = 'TLSv1.2';
+      scan.ephemeralKeyInfo = null;
+      scan.cipher!.name = 'ECDHE-RSA-AES256-GCM-SHA384';
+      const result = classify(scan);
+      const finding = result.findings.find((f) => f.component === 'keyExchange');
+      expect(finding?.risk).toBe('critical');
+      expect(finding?.algorithm).toBe('ECDHE (inferred)');
+    });
+
+    it('classifies unknown key exchange as critical for non-TLS 1.3', () => {
+      const scan = makeScanResult();
+      scan.protocol = 'TLSv1.2';
+      scan.ephemeralKeyInfo = null;
+      scan.cipher!.name = 'TLS_AES_256_GCM_SHA384';
+      const result = classify(scan);
+      const finding = result.findings.find((f) => f.component === 'keyExchange');
+      expect(finding?.risk).toBe('critical');
+      expect(finding?.algorithm).toBe('Unknown');
     });
   });
 

@@ -122,6 +122,7 @@ function classifyKeyExchange(scan: TlsScanResult): ClassifiedFinding {
   if (!scan.ephemeralKeyInfo) {
     const cipherName = scan.cipher?.name?.toUpperCase() ?? '';
 
+    // TLS 1.2 cipher names include key exchange (e.g., ECDHE-RSA-AES256-GCM-SHA384)
     if (cipherName.includes('ECDHE') || cipherName.includes('X25519')) {
       return {
         component: 'keyExchange',
@@ -138,6 +139,18 @@ function classifyKeyExchange(scan: TlsScanResult): ClassifiedFinding {
         algorithm: 'DHE (inferred)',
         risk: 'critical',
         reason: "Vulnerable to Shor's algorithm",
+        migration: 'ML-KEM (FIPS 203) hybrid key exchange',
+      };
+    }
+
+    // TLS 1.3 always uses ephemeral key exchange (typically X25519 or ECDHE P-256)
+    // but cipher names don't include it — infer from protocol
+    if (scan.protocol === 'TLSv1.3') {
+      return {
+        component: 'keyExchange',
+        algorithm: 'X25519 (inferred)',
+        risk: 'critical',
+        reason: "Vulnerable to Shor's algorithm (TLS 1.3 uses ephemeral ECDHE)",
         migration: 'ML-KEM (FIPS 203) hybrid key exchange',
       };
     }
