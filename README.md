@@ -83,7 +83,7 @@ npm run dev -- scan example.com   # Run from source
 
 | Phase | Target | Status |
 |-------|--------|--------|
-| TLS scanner CLI | March 2026 | Building |
+| TLS scanner CLI | March 2026 | v0.1.0 |
 | Code scanner (Python, JS, Go, Java) | April 2026 | Planned |
 | CBOM generation + risk scoring | May 2026 | Planned |
 | Web dashboard | June 2026 | Planned |
