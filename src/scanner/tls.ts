@@ -50,7 +50,7 @@ function extractTlsData(
   let ephemeralKeyInfo: TlsScanResult['ephemeralKeyInfo'] = null;
   try {
     const eki = (socket as any).getEphemeralKeyInfo?.();
-    if (eki) {
+    if (eki && eki.type) {
       ephemeralKeyInfo = {
         type: eki.type,
         name: eki.name,
@@ -73,14 +73,20 @@ function extractTlsData(
         ? (cert.issuer as any).CN ?? (cert.issuer as any).O ?? ''
         : String(cert.issuer);
 
-    const sigAlgorithm = (cert as any).sigalg ?? '';
     let publicKeyAlgorithm = 'Unknown';
     const publicKeySize = (cert as any).bits ?? 0;
     const curve = (cert as any).asn1Curve;
+    const modulus = (cert as any).modulus;
+    const sigAlgorithm = (cert as any).sigalg ?? '';
 
-    if (sigAlgorithm.includes('RSA') || sigAlgorithm.includes('rsa')) {
+    // Detect algorithm from cert properties (sigalg is not always available)
+    if (modulus) {
       publicKeyAlgorithm = 'RSA';
-    } else if (curve || sigAlgorithm.includes('ecdsa') || sigAlgorithm.includes('ECDSA')) {
+    } else if (curve) {
+      publicKeyAlgorithm = 'EC';
+    } else if (sigAlgorithm.includes('RSA') || sigAlgorithm.includes('rsa')) {
+      publicKeyAlgorithm = 'RSA';
+    } else if (sigAlgorithm.includes('ecdsa') || sigAlgorithm.includes('ECDSA')) {
       publicKeyAlgorithm = 'EC';
     } else if (sigAlgorithm.includes('ed25519') || sigAlgorithm.includes('Ed25519')) {
       publicKeyAlgorithm = 'Ed25519';
@@ -113,10 +119,18 @@ function extractTlsData(
           name: cipher.name,
           standardName: (cipher as any).standardName ?? cipher.name,
           version: cipher.version,
-          bits: (cipher as any).bits ?? 0,
+          bits: (cipher as any).bits ?? parseCipherBits(cipher.name),
         }
       : null,
     certificate,
     ephemeralKeyInfo,
   };
+}
+
+function parseCipherBits(cipherName: string): number {
+  const upper = cipherName.toUpperCase();
+  if (upper.includes('256')) return 256;
+  if (upper.includes('128')) return 128;
+  if (upper.includes('CHACHA20')) return 256;
+  return 0;
 }
