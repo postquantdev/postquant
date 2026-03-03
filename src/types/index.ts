@@ -230,4 +230,40 @@ export interface AnalyzeOptions {
   maxFiles: number;
   verbose: boolean;
   noMigration: boolean;
+  showAll?: boolean;
+  noContext?: boolean;
+}
+
+// ── Risk Assessment Types (v0.3.0) ──────────────────────────────
+
+export type UsageContext =
+  | 'authentication'
+  | 'encryption'
+  | 'key-exchange'
+  | 'digital-signature'
+  | 'integrity-check'
+  | 'protocol-compliance'
+  | 'legacy-support'
+  | 'test-fixture'
+  | 'documentation'
+  | 'unknown';
+
+export type AdjustedRisk = 'critical' | 'high' | 'medium' | 'low' | 'informational';
+
+export interface ContextSignal {
+  type: 'file-path' | 'function-name' | 'variable-name' | 'nearby-code' | 'import-context' | 'api-pattern';
+  value: string;
+  influence: 'increases-risk' | 'decreases-risk' | 'neutral';
+}
+
+export interface RiskContext {
+  usageContext: UsageContext;
+  adjustedRisk: AdjustedRisk;
+  contextEvidence: string[];
+  signals: ContextSignal[];
+}
+
+export interface AssessedFinding extends CodeFinding {
+  originalRisk: RiskLevel;
+  riskContext: RiskContext;
 }
