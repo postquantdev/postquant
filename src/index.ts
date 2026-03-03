@@ -67,6 +67,8 @@ program
   .option('--max-files <count>', 'Maximum files to scan', '10000')
   .option('--verbose', 'Show all findings including safe ones', false)
   .option('--no-migration', 'Hide migration recommendations')
+  .option('--show-all', 'Show all findings including low and informational risk')
+  .option('--no-context', 'Skip risk assessment, use raw pattern matching only')
   .action(async (targetPath: string, opts) => {
     const format = opts.format as AnalyzeOutputFormat;
     if (!VALID_ANALYZE_FORMATS.includes(format)) {
@@ -100,6 +102,8 @@ program
       maxFiles: parseInt(opts.maxFiles, 10),
       verbose: opts.verbose,
       noMigration: !opts.migration,
+      showAll: opts.showAll ?? false,
+      noContext: !opts.context,
     });
 
     console.log(output);
