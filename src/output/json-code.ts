@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { CodeGradedResult } from '../types/index.js';
+import type { CodeGradedResult, AssessedFinding } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -15,8 +15,14 @@ function getVersion(): string {
   }
 }
 
+function isAssessedFinding(f: unknown): f is AssessedFinding {
+  return typeof f === 'object' && f !== null && 'riskContext' in f;
+}
+
 export function formatCodeJson(result: CodeGradedResult): string {
-  const output = {
+  const hasAssessment = result.findings.some(f => isAssessedFinding(f));
+
+  const output: Record<string, unknown> = {
     version: getVersion(),
     timestamp: new Date().toISOString(),
     scanRoot: result.scanRoot,
@@ -28,6 +34,17 @@ export function formatCodeJson(result: CodeGradedResult): string {
     migrationNotes: result.migrationNotes,
     fileBreakdown: result.fileBreakdown,
   };
+
+  if (hasAssessment) {
+    const adjCounts = { critical: 0, high: 0, medium: 0, low: 0, informational: 0, total: 0 };
+    for (const f of result.findings) {
+      if (isAssessedFinding(f)) {
+        adjCounts[f.riskContext.adjustedRisk]++;
+        adjCounts.total++;
+      }
+    }
+    output.adjustedSummary = adjCounts;
+  }
 
   return JSON.stringify(output, null, 2);
 }
