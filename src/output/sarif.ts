@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { CodeGradedResult, CodeFinding, CryptoCategory, RiskLevel } from '../types/index.js';
+import type { CodeGradedResult, CodeFinding, CryptoCategory, RiskLevel, AssessedFinding, AdjustedRisk } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -206,16 +206,45 @@ function riskToLevel(risk: RiskLevel): 'error' | 'warning' | 'note' {
   }
 }
 
+/** Type guard: does this finding carry risk-assessment context? */
+function isAssessedFinding(f: CodeFinding): f is AssessedFinding {
+  return 'riskContext' in f;
+}
+
+/** Map adjusted risk to SARIF level. */
+function adjustedRiskToLevel(risk: AdjustedRisk): 'error' | 'warning' | 'note' {
+  switch (risk) {
+    case 'critical':
+    case 'high':
+      return 'error';
+    case 'medium':
+      return 'warning';
+    case 'low':
+    case 'informational':
+      return 'note';
+  }
+}
+
 // --- Public API ---
 
 export function formatSarif(result: CodeGradedResult): string {
   const sarifResults = result.findings.map((f) => {
     const ruleId = mapToRuleId(f);
+    const assessed = isAssessedFinding(f);
+    const level = assessed
+      ? adjustedRiskToLevel(f.riskContext.adjustedRisk)
+      : riskToLevel(f.risk);
+
+    let messageText = `${f.algorithm} detected. ${f.reason}.${f.migration ? ` ${f.migration}.` : ''}`;
+    if (assessed) {
+      messageText += ` [Usage: ${f.riskContext.usageContext}, Adjusted risk: ${f.riskContext.adjustedRisk}]`;
+    }
+
     const entry: Record<string, unknown> = {
       ruleId,
-      level: riskToLevel(f.risk),
+      level,
       message: {
-        text: `${f.algorithm} detected. ${f.reason}.${f.migration ? ` ${f.migration}.` : ''}`,
+        text: messageText,
       },
       locations: [
         {
@@ -232,6 +261,10 @@ export function formatSarif(result: CodeGradedResult): string {
         },
       ],
     };
+
+    if (assessed && (f.riskContext.adjustedRisk === 'informational')) {
+      entry.kind = 'informational';
+    }
 
     if (f.migration) {
       entry.fixes = [
