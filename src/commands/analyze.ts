@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { discoverFiles } from '../scanner/code/discovery.js';
 import { matchFile } from '../scanner/code/matcher.js';
 import { classifyCodeFindings } from '../scanner/code/classifier.js';
+import { assessFindings } from '../scanner/code/risk-assessor.js';
 import { gradeCodeScan, shouldFailForCodeGrade } from '../scanner/code/grader.js';
 import { formatCodeTerminal } from '../output/terminal-code.js';
 import { formatCodeJson } from '../output/json-code.js';
@@ -53,6 +54,7 @@ export async function analyzeCommand(
 
   const startTime = Date.now();
   const allFindings: CodeFinding[] = [];
+  const fileContents = new Map<string, string>();
   let filesScanned = 0;
 
   if (fileStat.isFile()) {
@@ -60,12 +62,14 @@ export async function analyzeCommand(
     const ext = extname(absPath);
     const lang = EXTENSION_MAP[ext];
     if (lang && (!options.language || options.language === lang)) {
-      const { findings } = await matchFile(absPath, lang);
+      const { findings, content } = await matchFile(absPath, lang);
+      const normalizedName = basename(absPath);
       // Normalize file paths to be relative-ish (just the basename for single files)
       for (const f of findings) {
-        f.file = basename(absPath);
+        f.file = normalizedName;
       }
       allFindings.push(...findings);
+      fileContents.set(normalizedName, content);
       filesScanned = 1;
     } else {
       filesScanned = 1;
@@ -84,12 +88,13 @@ export async function analyzeCommand(
     for (const file of discovered) {
       const fullPath = join(absPath, file.path);
       try {
-        const { findings } = await matchFile(fullPath, file.language);
+        const { findings, content } = await matchFile(fullPath, file.language);
         // Normalize to relative path from scan root
         for (const f of findings) {
           f.file = file.path;
         }
         allFindings.push(...findings);
+        fileContents.set(file.path, content);
       } catch {
         // Skip files that can't be read
       }
@@ -99,9 +104,15 @@ export async function analyzeCommand(
   const durationMs = Date.now() - startTime;
   const scanRoot = fileStat.isFile() ? absPath : absPath;
 
-  // Pipeline: classify → grade → format
+  // Pipeline: classify → assess → grade → format
   const classified = classifyCodeFindings(allFindings, scanRoot, filesScanned, durationMs);
-  const graded = gradeCodeScan(classified);
+
+  let gradingFindings = classified.findings;
+  if (!options.noContext) {
+    gradingFindings = assessFindings(classified.findings, fileContents);
+  }
+
+  const graded = gradeCodeScan({ ...classified, findings: gradingFindings });
 
   // Format output
   let output: string;
@@ -120,6 +131,7 @@ export async function analyzeCommand(
       output = formatCodeTerminal(graded, {
         verbose: options.verbose,
         noMigration: options.noMigration,
+        showAll: options.showAll,
       });
       break;
   }
