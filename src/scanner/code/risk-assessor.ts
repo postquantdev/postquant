@@ -242,13 +242,6 @@ export function detectImportSignals(content: string, language: Language): Contex
         }
       }
     }
-
-    // Also check the raw line for Python bare imports like "import uuid"
-    // (the regex already handles this, but let's also check full-line for Go import blocks)
-    if (language === 'python') {
-      // "import uuid" -> captured as group 1 = "uuid"
-      // Already handled above
-    }
   }
 
   return signals;
