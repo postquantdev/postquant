@@ -1,7 +1,20 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import type { GradedResult, RiskLevel, Grade } from '../types/index.js';
 
-const VERSION = '0.1.1';
+function getVersion(): string {
+  try {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const pkg = JSON.parse(
+      readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'),
+    );
+    return pkg.version;
+  } catch {
+    return '0.2.0';
+  }
+}
 
 function riskIcon(risk: RiskLevel): string {
   switch (risk) {
@@ -38,7 +51,7 @@ export function formatTerminal(result: GradedResult): string {
 
   lines.push('');
   lines.push(
-    chalk.bold(`🔐 PostQuant v${VERSION} — Quantum Readiness Scanner`),
+    chalk.bold(`🔐 PostQuant v${getVersion()} — Quantum Readiness Scanner`),
   );
   lines.push(chalk.dim(bar));
   lines.push('');
