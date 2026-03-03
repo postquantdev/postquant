@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
-import type { CodeGradedResult, FileBreakdown, RiskLevel, Grade } from '../types/index.js';
+import type { CodeGradedResult, FileBreakdown, RiskLevel, Grade, AssessedFinding, AdjustedRisk } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -19,6 +19,7 @@ function getVersion(): string {
 export interface CodeTerminalOptions {
   verbose?: boolean;
   noMigration?: boolean;
+  showAll?: boolean;
 }
 
 function riskIcon(risk: RiskLevel): string {
@@ -32,6 +33,29 @@ function riskIcon(risk: RiskLevel): string {
   }
 }
 
+function isAssessedFinding(f: unknown): f is AssessedFinding {
+  return typeof f === 'object' && f !== null && 'riskContext' in f;
+}
+
+function adjustedRiskIcon(risk: AdjustedRisk): string {
+  switch (risk) {
+    case 'critical':
+      return chalk.red('🔴 Critical');
+    case 'high':
+      return chalk.red('🔴 High');
+    case 'medium':
+      return chalk.yellow('🟡 Medium');
+    case 'low':
+      return chalk.green('🟢 Low');
+    case 'informational':
+      return chalk.green('🟢 Info');
+  }
+}
+
+function usageContextLabel(context: string): string {
+  return context.replace(/-/g, ' ');
+}
+
 function gradeColor(g: Grade): string {
   if (g.startsWith('A')) return chalk.green.bold(g);
   if (g.startsWith('B')) return chalk.yellow.bold(g);
@@ -42,7 +66,7 @@ export function formatCodeTerminal(
   result: CodeGradedResult,
   options: CodeTerminalOptions = {},
 ): string {
-  const { verbose = false, noMigration = false } = options;
+  const { verbose = false, noMigration = false, showAll = false } = options;
   const lines: string[] = [];
   const bar = '━'.repeat(48);
 
@@ -91,10 +115,39 @@ export function formatCodeTerminal(
       chalk.green('    No quantum-vulnerable cryptography detected.'),
     );
   }
+
+  // Adjusted risk summary when findings have risk context
+  const hasAssessment = result.findings.some(f => isAssessedFinding(f));
+  if (hasAssessment) {
+    const adjCounts = { critical: 0, high: 0, medium: 0, low: 0, informational: 0 };
+    for (const f of result.findings) {
+      if (isAssessedFinding(f)) {
+        adjCounts[f.riskContext.adjustedRisk]++;
+      }
+    }
+    lines.push('');
+    lines.push('  Adjusted Risk (with context)');
+    if (adjCounts.critical > 0) {
+      lines.push(chalk.red(`    🔴 ${adjCounts.critical} critical`));
+    }
+    if (adjCounts.high > 0) {
+      lines.push(chalk.red(`    🔴 ${adjCounts.high} high`));
+    }
+    if (adjCounts.medium > 0) {
+      lines.push(chalk.yellow(`    🟡 ${adjCounts.medium} medium`));
+    }
+    if (adjCounts.low > 0) {
+      lines.push(chalk.green(`    🟢 ${adjCounts.low} low`));
+    }
+    if (adjCounts.informational > 0) {
+      lines.push(chalk.green(`    🟢 ${adjCounts.informational} informational`));
+    }
+  }
+
   lines.push('');
 
   // Per-file breakdown
-  const filesToShow = verbose
+  const filesToShow = (verbose || showAll)
     ? result.fileBreakdown
     : result.fileBreakdown.filter(
         (fb) => fb.criticalCount > 0 || fb.moderateCount > 0,
@@ -109,14 +162,28 @@ export function formatCodeTerminal(
         `  ${chalk.bold(fb.file)} ${chalk.dim(`(${fb.language})`)}`,
       );
 
-      const findingsToShow = verbose
-        ? fb.findings
-        : fb.findings.filter((f) => f.risk !== 'safe');
+      const findingsToShow = fb.findings.filter((f) => {
+        if (isAssessedFinding(f)) {
+          const adj = f.riskContext.adjustedRisk;
+          if ((adj === 'low' || adj === 'informational') && !showAll) return false;
+          return true;
+        }
+        // Raw findings: same logic as before
+        if (!verbose && f.risk === 'safe') return false;
+        return true;
+      });
 
       for (const f of findingsToShow) {
-        lines.push(
-          `    L${f.line}: ${f.algorithm.padEnd(16)} ${riskIcon(f.risk)}`,
-        );
+        if (isAssessedFinding(f)) {
+          const ctxLabel = usageContextLabel(f.riskContext.usageContext);
+          lines.push(
+            `    L${f.line}: ${f.algorithm.padEnd(16)} ${adjustedRiskIcon(f.riskContext.adjustedRisk)} ${chalk.dim(`— ${ctxLabel}`)}`,
+          );
+        } else {
+          lines.push(
+            `    L${f.line}: ${f.algorithm.padEnd(16)} ${riskIcon(f.risk)}`,
+          );
+        }
       }
       lines.push('');
     }
