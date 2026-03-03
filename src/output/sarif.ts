@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import type { CodeGradedResult, CodeFinding, CryptoCategory, RiskLevel, AssessedFinding, AdjustedRisk } from '../types/index.js';
+import { isAssessedFinding } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -204,11 +205,6 @@ function riskToLevel(risk: RiskLevel): 'error' | 'warning' | 'note' {
     case 'safe':
       return 'note';
   }
-}
-
-/** Type guard: does this finding carry risk-assessment context? */
-function isAssessedFinding(f: CodeFinding): f is AssessedFinding {
-  return 'riskContext' in f;
 }
 
 /** Map adjusted risk to SARIF level. */

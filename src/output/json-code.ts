@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import type { CodeGradedResult, AssessedFinding } from '../types/index.js';
+import { isAssessedFinding } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -13,10 +14,6 @@ function getVersion(): string {
   } catch {
     return '0.1.1';
   }
-}
-
-function isAssessedFinding(f: unknown): f is AssessedFinding {
-  return typeof f === 'object' && f !== null && 'riskContext' in f;
 }
 
 export function formatCodeJson(result: CodeGradedResult): string {

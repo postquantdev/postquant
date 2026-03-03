@@ -267,3 +267,8 @@ export interface AssessedFinding extends CodeFinding {
   originalRisk: RiskLevel;
   riskContext: RiskContext;
 }
+
+/** Type guard: does this finding carry risk-assessment context? */
+export function isAssessedFinding(f: CodeFinding): f is AssessedFinding {
+  return 'riskContext' in f;
+}

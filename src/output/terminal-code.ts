@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import type { CodeGradedResult, FileBreakdown, RiskLevel, Grade, AssessedFinding, AdjustedRisk } from '../types/index.js';
+import { isAssessedFinding } from '../types/index.js';
 
 function getVersion(): string {
   try {
@@ -31,10 +32,6 @@ function riskIcon(risk: RiskLevel): string {
     case 'safe':
       return chalk.green('🟢 Quantum Safe');
   }
-}
-
-function isAssessedFinding(f: unknown): f is AssessedFinding {
-  return typeof f === 'object' && f !== null && 'riskContext' in f;
 }
 
 function adjustedRiskIcon(risk: AdjustedRisk): string {

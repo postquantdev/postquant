@@ -8,16 +8,12 @@ import type {
   BaseGrade,
   GradeModifier,
 } from '../../types/index.js';
+import { isAssessedFinding } from '../../types/index.js';
 
 const BASE_GRADE_ORDER: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 
 /** Algorithms that are already broken classically — cap grade at D. */
 const BROKEN_ALGORITHMS = ['MD5', 'SHA-1', 'SHA1', 'DES', '3DES', 'TRIPLE-DES'];
-
-/** Type guard: does this finding carry risk-assessment context? */
-function isAssessedFinding(f: CodeFinding): f is AssessedFinding {
-  return 'riskContext' in f;
-}
 
 /**
  * Map a finding to a grade bucket using adjusted risk when available,

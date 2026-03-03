@@ -1,6 +1,6 @@
 {
   "name": "postquant",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Scan your code and infrastructure for quantum-vulnerable cryptography.",
   "type": "module",
   "main": "dist/index.js",
@@ -44,6 +44,9 @@
   },
   "bugs": {
     "url": "https://github.com/postquantdev/postquant/issues"
+  },
+  "funding": {
+    "url": "https://postquant.dev"
   },
   "dependencies": {
     "chalk": "^5.6.2",
