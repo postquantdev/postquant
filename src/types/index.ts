@@ -89,3 +89,145 @@ export interface ScanOptions {
   failGrade: BaseGrade;
   file?: string;
 }
+
+// === Code Scanner Types ===
+
+export type Language = 'python' | 'javascript' | 'go' | 'java';
+
+export type CryptoCategory =
+  | 'asymmetric-encryption'
+  | 'digital-signature'
+  | 'key-exchange'
+  | 'weak-symmetric'
+  | 'weak-hash'
+  | 'broken-cipher'
+  | 'safe-symmetric'
+  | 'safe-hash'
+  | 'pqc-algorithm';
+
+export type AnalyzeOutputFormat = 'terminal' | 'json' | 'sarif' | 'cbom';
+
+export interface DiscoveredFile {
+  /** File path relative to scan root */
+  path: string;
+  /** Detected language */
+  language: Language;
+}
+
+export interface CryptoPattern {
+  /** Unique ID, e.g., 'python-rsa-keygen' */
+  id: string;
+  language: Language;
+  category: CryptoCategory;
+  /** Algorithm name, e.g., 'RSA-2048', 'ECDSA', 'AES-128' */
+  algorithm: string;
+  risk: RiskLevel;
+  confidence: 'high' | 'medium' | 'low';
+
+  /** Import/require/use statement patterns */
+  importPatterns?: RegExp[];
+  /** Function call / instantiation patterns (at least one required) */
+  callPatterns: RegExp[];
+  /** Nearby lines that increase confidence */
+  contextPatterns?: RegExp[];
+
+  /** Extract key size from matched line */
+  keySizeExtractor?: RegExp;
+  /** Evaluate key size to determine risk */
+  keySizeRisk?: (size: number) => RiskLevel;
+
+  description: string;
+  migration: string;
+  nistRef?: string;
+  cweId?: string;
+}
+
+export interface CodeFinding {
+  /** Pattern ID that matched */
+  patternId: string;
+  /** Source file path (relative to scan root) */
+  file: string;
+  /** Line number (1-indexed) */
+  line: number;
+  /** The matched line content (trimmed) */
+  matchedLine: string;
+  /** Detected language */
+  language: Language;
+  /** Crypto category */
+  category: CryptoCategory;
+  /** Algorithm name, e.g., 'RSA-2048', 'ECDSA-P256', 'AES-128' */
+  algorithm: string;
+  /** Key size if detected */
+  keySize?: number;
+  /** Elliptic curve name if detected */
+  curve?: string;
+  /** Risk level */
+  risk: RiskLevel;
+  /** Human-readable reason */
+  reason: string;
+  /** Migration recommendation */
+  migration?: string;
+  /** Match confidence */
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface CodeScanResult {
+  /** Root directory that was scanned */
+  scanRoot: string;
+  /** All findings */
+  findings: CodeFinding[];
+  /** Files scanned count */
+  filesScanned: number;
+  /** Files with findings count */
+  filesWithFindings: number;
+  /** Languages detected */
+  languagesDetected: Language[];
+  /** Scan duration in milliseconds */
+  durationMs: number;
+}
+
+export interface FileBreakdown {
+  file: string;
+  language: Language;
+  findings: CodeFinding[];
+  criticalCount: number;
+  moderateCount: number;
+  safeCount: number;
+}
+
+export interface CodeGradedResult {
+  /** Root directory */
+  scanRoot: string;
+  /** Overall display grade (e.g., 'C+', 'B-') */
+  grade: Grade;
+  /** Base grade without modifier */
+  baseGrade: BaseGrade;
+  /** Grade modifier */
+  modifier: GradeModifier;
+  /** All findings */
+  findings: CodeFinding[];
+  /** Migration notes (unique) */
+  migrationNotes: string[];
+  /** Summary counts */
+  summary: {
+    critical: number;
+    moderate: number;
+    safe: number;
+    total: number;
+    filesScanned: number;
+    filesWithFindings: number;
+  };
+  /** Per-file breakdown */
+  fileBreakdown: FileBreakdown[];
+}
+
+export interface AnalyzeOptions {
+  format: AnalyzeOutputFormat;
+  language?: Language;
+  failGrade: BaseGrade;
+  ignore: string[];
+  ignoreFile: string;
+  maxFiles: number;
+  verbose: boolean;
+  noMigration: boolean;
+}

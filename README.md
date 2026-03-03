@@ -1,13 +1,11 @@
 # PostQuant
 
-**Find quantum-vulnerable cryptography in your TLS endpoints.**
+**Find quantum-vulnerable cryptography in your TLS endpoints and source code.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/postquant)](https://www.npmjs.com/package/postquant)
 
-PostQuant scans TLS connections and reports which algorithms are vulnerable to quantum attacks. It grades endpoints A+ through F and tells you what to migrate to.
-
-> **Early development.** The TLS scanner works. Code scanning and CBOM generation are planned.
+PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, and Java.
 
 ## Why
 
@@ -38,7 +36,17 @@ Output:
 
 Most sites today score C+ or C. That's expected — almost nobody has deployed post-quantum cryptography yet.
 
+### Scan Source Code
+
+```bash
+npx postquant analyze ./src
+```
+
+Scans Python, JavaScript/TypeScript, Go, and Java files for quantum-vulnerable cryptographic patterns (RSA, ECDSA, ECDH, DH, DSA, MD5, SHA-1, DES/3DES, AES-128) and reports findings with migration recommendations.
+
 ## Usage
+
+### TLS Scanning
 
 ```bash
 # Scan a single host
@@ -60,6 +68,37 @@ postquant scan --file hosts.txt
 postquant scan example.com --timeout 5000
 ```
 
+### Code Scanning
+
+```bash
+# Scan a directory
+postquant analyze ./src
+
+# Scan a single file
+postquant analyze ./src/auth.py
+
+# Filter by language
+postquant analyze ./src --language python
+
+# JSON output
+postquant analyze ./src --format json
+
+# SARIF output (for GitHub Code Scanning)
+postquant analyze ./src --format sarif > results.sarif
+
+# CycloneDX CBOM output
+postquant analyze ./src --format cbom > cbom.json
+
+# Exclude directories
+postquant analyze . --ignore "vendor/**" --ignore "test/**"
+
+# Set fail threshold for CI
+postquant analyze ./src --fail-grade D
+
+# Show all findings including safe ones
+postquant analyze ./src --verbose
+```
+
 ## Grading
 
 | Grade | Meaning |
@@ -75,13 +114,24 @@ postquant scan example.com --timeout 5000
 
 +/- modifiers reflect classical crypto hygiene within each grade band.
 
+### GitHub Actions
+
+```yaml
+- run: npx postquant analyze . --format sarif > results.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+    category: postquant
+```
+
 ## Development
 
 ```bash
 npm install        # Install dependencies
 npm run build      # Compile TypeScript
 npm test           # Run tests
-npm run dev -- scan example.com   # Run from source
+npm run dev -- scan example.com      # TLS scan from source
+npm run dev -- analyze ./src         # Code scan from source
 ```
 
 ## Roadmap
@@ -89,9 +139,9 @@ npm run dev -- scan example.com   # Run from source
 | Phase | Target | Status |
 |-------|--------|--------|
 | TLS scanner CLI | March 2026 | v0.1.0 |
-| Code scanner (Python, JS, Go, Java) | April 2026 | Planned |
-| CBOM generation + risk scoring | May 2026 | Planned |
-| Web dashboard | June 2026 | Planned |
+| Code scanner (Python, JS, Go, Java) | March 2026 | v0.2.0 |
+| Migration playbook engine | April 2026 | Planned |
+| Web dashboard | May 2026 | Planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
