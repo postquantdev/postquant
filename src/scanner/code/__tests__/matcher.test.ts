@@ -11,13 +11,13 @@ describe('Matcher', () => {
 
   describe('Python vulnerable fixture', () => {
     it('finds critical findings in vulnerable.py', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const critical = findings.filter((f) => f.risk === 'critical');
       expect(critical.length).toBeGreaterThanOrEqual(8);
     });
 
     it('detects RSA key generation', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.filter((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa.length).toBeGreaterThanOrEqual(1);
       expect(rsa[0].risk).toBe('critical');
@@ -25,14 +25,14 @@ describe('Matcher', () => {
     });
 
     it('detects MD5 usage', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const md5 = findings.filter((f) => f.patternId === 'python-md5');
       expect(md5.length).toBeGreaterThanOrEqual(1);
       expect(md5[0].risk).toBe('critical');
     });
 
     it('detects AES-128 as moderate', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const aes = findings.filter((f) => f.patternId === 'python-aes');
       expect(aes.length).toBeGreaterThanOrEqual(1);
       expect(aes[0].risk).toBe('moderate');
@@ -41,7 +41,7 @@ describe('Matcher', () => {
 
   describe('Python safe fixture', () => {
     it('finds only safe findings in safe.py', async () => {
-      const findings = await matchFile(fixture('python', 'safe.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'safe.py'), 'python');
       const nonSafe = findings.filter((f) => f.risk !== 'safe');
       expect(nonSafe.length).toBe(0);
       expect(findings.length).toBeGreaterThanOrEqual(1);
@@ -50,7 +50,7 @@ describe('Matcher', () => {
 
   describe('Python no-crypto fixture', () => {
     it('returns empty findings for code with no crypto', async () => {
-      const findings = await matchFile(fixture('python', 'no-crypto.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'no-crypto.py'), 'python');
       expect(findings).toHaveLength(0);
     });
   });
@@ -59,20 +59,20 @@ describe('Matcher', () => {
 
   describe('JavaScript vulnerable fixture', () => {
     it('finds critical findings in vulnerable.js', async () => {
-      const findings = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
+      const { findings } = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
       const critical = findings.filter((f) => f.risk === 'critical');
       expect(critical.length).toBeGreaterThanOrEqual(8);
     });
 
     it('detects RSA key generation via generateKeyPairSync', async () => {
-      const findings = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
+      const { findings } = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
       const rsa = findings.filter((f) => f.patternId === 'js-rsa-keygen');
       expect(rsa.length).toBeGreaterThanOrEqual(1);
       expect(rsa[0].risk).toBe('critical');
     });
 
     it('detects JWT signing with RS256', async () => {
-      const findings = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
+      const { findings } = await matchFile(fixture('javascript', 'vulnerable.js'), 'javascript');
       const jwt = findings.filter((f) => f.patternId === 'js-jwt-sign');
       expect(jwt.length).toBeGreaterThanOrEqual(1);
       expect(jwt[0].risk).toBe('critical');
@@ -81,7 +81,7 @@ describe('Matcher', () => {
 
   describe('JavaScript safe fixture', () => {
     it('finds only safe findings in safe.js', async () => {
-      const findings = await matchFile(fixture('javascript', 'safe.js'), 'javascript');
+      const { findings } = await matchFile(fixture('javascript', 'safe.js'), 'javascript');
       const nonSafe = findings.filter((f) => f.risk !== 'safe');
       expect(nonSafe.length).toBe(0);
       expect(findings.length).toBeGreaterThanOrEqual(1);
@@ -92,13 +92,13 @@ describe('Matcher', () => {
 
   describe('Go vulnerable fixture', () => {
     it('finds critical findings in vulnerable.go', async () => {
-      const findings = await matchFile(fixture('go', 'vulnerable.go'), 'go');
+      const { findings } = await matchFile(fixture('go', 'vulnerable.go'), 'go');
       const critical = findings.filter((f) => f.risk === 'critical');
       expect(critical.length).toBeGreaterThanOrEqual(4);
     });
 
     it('detects RSA GenerateKey', async () => {
-      const findings = await matchFile(fixture('go', 'vulnerable.go'), 'go');
+      const { findings } = await matchFile(fixture('go', 'vulnerable.go'), 'go');
       const rsa = findings.filter((f) => f.patternId === 'go-rsa-keygen');
       expect(rsa.length).toBeGreaterThanOrEqual(1);
       expect(rsa[0].risk).toBe('critical');
@@ -107,7 +107,7 @@ describe('Matcher', () => {
 
   describe('Go safe fixture', () => {
     it('finds only safe findings in safe.go', async () => {
-      const findings = await matchFile(fixture('go', 'safe.go'), 'go');
+      const { findings } = await matchFile(fixture('go', 'safe.go'), 'go');
       const nonSafe = findings.filter((f) => f.risk !== 'safe');
       expect(nonSafe.length).toBe(0);
     });
@@ -117,20 +117,20 @@ describe('Matcher', () => {
 
   describe('Java vulnerable fixture', () => {
     it('finds critical findings in Vulnerable.java', async () => {
-      const findings = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
+      const { findings } = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
       const critical = findings.filter((f) => f.risk === 'critical');
       expect(critical.length).toBeGreaterThanOrEqual(8);
     });
 
     it('detects RSA KeyPairGenerator', async () => {
-      const findings = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
+      const { findings } = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
       const rsa = findings.filter((f) => f.patternId === 'java-rsa-keygen');
       expect(rsa.length).toBeGreaterThanOrEqual(1);
       expect(rsa[0].risk).toBe('critical');
     });
 
     it('detects 3DES cipher', async () => {
-      const findings = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
+      const { findings } = await matchFile(fixture('java', 'Vulnerable.java'), 'java');
       const des3 = findings.filter((f) => f.patternId === 'java-3des');
       expect(des3.length).toBeGreaterThanOrEqual(1);
       expect(des3[0].risk).toBe('critical');
@@ -139,7 +139,7 @@ describe('Matcher', () => {
 
   describe('Java safe fixture', () => {
     it('finds only safe findings in Safe.java', async () => {
-      const findings = await matchFile(fixture('java', 'Safe.java'), 'java');
+      const { findings } = await matchFile(fixture('java', 'Safe.java'), 'java');
       const nonSafe = findings.filter((f) => f.risk !== 'safe');
       expect(nonSafe.length).toBe(0);
       expect(findings.length).toBeGreaterThanOrEqual(1);
@@ -150,7 +150,7 @@ describe('Matcher', () => {
 
   describe('confidence scoring', () => {
     it('sets high confidence when import and call both match', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.find((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa).toBeDefined();
       expect(rsa!.confidence).toBe('high');
@@ -169,17 +169,17 @@ describe('Matcher', () => {
 
   describe('block comment handling', () => {
     it('skips Python triple-quote docstrings', async () => {
-      const findings = await matchFile(fixture('python', 'comments.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'comments.py'), 'python');
       expect(findings).toHaveLength(0);
     });
 
     it('skips JavaScript block comments', async () => {
-      const findings = await matchFile(fixture('javascript', 'comments.js'), 'javascript');
+      const { findings } = await matchFile(fixture('javascript', 'comments.js'), 'javascript');
       expect(findings).toHaveLength(0);
     });
 
     it('skips Go block comments', async () => {
-      const findings = await matchFile(fixture('go', 'comments.go'), 'go');
+      const { findings } = await matchFile(fixture('go', 'comments.go'), 'go');
       expect(findings).toHaveLength(0);
     });
   });
@@ -188,7 +188,7 @@ describe('Matcher', () => {
 
   describe('finding metadata', () => {
     it('includes correct line numbers', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.find((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa).toBeDefined();
       expect(rsa!.line).toBeGreaterThan(0);
@@ -196,21 +196,21 @@ describe('Matcher', () => {
     });
 
     it('includes trimmed matched line content', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.find((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa).toBeDefined();
       expect(rsa!.matchedLine).toContain('rsa.generate_private_key');
     });
 
     it('includes migration recommendation from pattern', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.find((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa).toBeDefined();
       expect(rsa!.migration).toBeTruthy();
     });
 
     it('extracts key size when extractor is defined', async () => {
-      const findings = await matchFile(fixture('python', 'vulnerable.py'), 'python');
+      const { findings } = await matchFile(fixture('python', 'vulnerable.py'), 'python');
       const rsa = findings.find((f) => f.patternId === 'python-rsa-keygen');
       expect(rsa).toBeDefined();
       expect(rsa!.keySize).toBe(2048);

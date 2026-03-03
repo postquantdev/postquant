@@ -5,15 +5,26 @@ import { getPatterns } from './patterns/index.js';
 import type { CodeFinding, CryptoPattern, Language } from '../../types/index.js';
 
 /**
- * Scan a file on disk and return code findings.
+ * Result of matching a file on disk — includes both findings and raw content
+ * so downstream stages (e.g. risk assessor) can inspect surrounding code
+ * without re-reading the file.
+ */
+export interface MatchFileResult {
+  findings: CodeFinding[];
+  content: string;
+}
+
+/**
+ * Scan a file on disk and return code findings alongside the file content.
  */
 export async function matchFile(
   filePath: string,
   language: Language,
-): Promise<CodeFinding[]> {
+): Promise<MatchFileResult> {
   const content = await fs.promises.readFile(filePath, 'utf-8');
   const relativeName = path.basename(filePath);
-  return matchFileContent(content, language, relativeName);
+  const findings = matchFileContent(content, language, relativeName);
+  return { findings, content };
 }
 
 /**

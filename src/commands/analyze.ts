@@ -60,7 +60,7 @@ export async function analyzeCommand(
     const ext = extname(absPath);
     const lang = EXTENSION_MAP[ext];
     if (lang && (!options.language || options.language === lang)) {
-      const findings = await matchFile(absPath, lang);
+      const { findings } = await matchFile(absPath, lang);
       // Normalize file paths to be relative-ish (just the basename for single files)
       for (const f of findings) {
         f.file = basename(absPath);
@@ -84,7 +84,7 @@ export async function analyzeCommand(
     for (const file of discovered) {
       const fullPath = join(absPath, file.path);
       try {
-        const findings = await matchFile(fullPath, file.language);
+        const { findings } = await matchFile(fullPath, file.language);
         // Normalize to relative path from scan root
         for (const f of findings) {
           f.file = file.path;
