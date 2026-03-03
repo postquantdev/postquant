@@ -7,23 +7,97 @@
 
 PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, and Java.
 
+## What Makes v0.3.0 Different
+
+PostQuant doesn't just find algorithms — it understands context.
+
+A naive scanner flags `uuid` for using MD5 and calls it critical. PostQuant reads the surrounding code, sees it's generating RFC 4122 checksums (not securing passwords), and adjusts the risk to low. The grade? **A**.
+
+Django's `auth/hashers.py` also uses MD5 — but for password hashing. PostQuant sees the `password` and `authenticate` signals, keeps the risk at critical, and grades it **D+**.
+
+Same algorithm. Different context. Different risk. That distinction matters.
+
+## TLS Scan Results
+
+We scanned major sites with PostQuant v0.3.0. Nobody has deployed post-quantum cryptography yet:
+
+| Site | Grade | Certificate | Key Exchange | Cipher | Hash |
+|------|-------|-------------|--------------|--------|------|
+| google.com | **C+** | RSA-2048 | X25519 | AES-256 | SHA-384 |
+| cloudflare.com | **C+** | ECDSA P-256 | X25519 | AES-256 | SHA-384 |
+| stripe.com | **C+** | ECDSA P-256 | X25519 | AES-256 | SHA-384 |
+| github.com | **C** | ECDSA P-256 | X25519 | AES-256 | SHA-256 |
+
+> Scanned with PostQuant v0.3.0 on March 3, 2026. C+ = best classical crypto (AES-256, SHA-384) but no PQC. C = SHA-256 instead of SHA-384.
+
 ## Framework Scan Results
 
-We scanned popular open-source frameworks with PostQuant v0.2.0. Here's what we found:
+We scanned popular open-source frameworks with PostQuant v0.3.0:
 
-| Project | Language | Grade | Critical Findings | What We Found |
-|---------|----------|-------|-------------------|---------------|
-| Go stdlib | Go | F | 161 | ECDSA, RSA, DH throughout the crypto package |
-| Spring Boot | Java | D+ | 7 | RSA in OAuth2 auth server, SHA-1 in DevTools |
-| Django | Python | D+ | 7 | MD5 in auth hashers, SHA-1 in template caching |
-| Next.js | JS | D+ | 4 | MD5 + SHA-1 in Turbopack runtime |
-| Node.js | JS | D+ | 6 | DH + ECDH in crypto.js, SHA-1 in TLS |
-| Flask | Python | D+ | 1 | SHA-1 in session management |
-| FastAPI | Python | A | 0 | No quantum-vulnerable crypto detected |
-| Express | JS | A | 0 | No quantum-vulnerable crypto detected |
-| Gin | Go | A | 0 | No quantum-vulnerable crypto detected |
+| Project | Language | Grade | Critical | What We Found |
+|---------|----------|-------|----------|---------------|
+| Django | Python | **D+** | 2 | MD5 in auth hashers, SHA-1 in file uploads |
+| FastAPI | Python | **A** | 0 | No quantum-vulnerable crypto detected |
+| Express | JS | **A** | 0 | No quantum-vulnerable crypto detected |
+| Gin | Go | **A** | 0 | No quantum-vulnerable crypto detected |
 
-> Scanned with PostQuant v0.2.0 on March 2, 2026. Run `npx postquant analyze <path>` to scan your own projects.
+> Scanned with PostQuant v0.3.0 on March 3, 2026. Run `npx postquant analyze <path>` to scan your own projects.
+
+## Package Scan Results
+
+We scanned popular npm and PyPI packages. Context-aware risk assessment separates real threats from protocol compliance:
+
+### npm Packages
+
+| Package | Grade | Raw Findings | Adjusted Risk | What We Found |
+|---------|-------|-------------|---------------|---------------|
+| uuid | **A** | 4 critical | 4 low | MD5/SHA-1 for RFC 4122 checksums — not security |
+| express-session | **A** | 2 critical | 2 low | SHA-1 for integrity checks — not auth |
+| node-forge | **C+** | 4 critical | 4 critical | RSA in encryption — intentional crypto library |
+| pg | **D+** | 4 critical | 4 critical | MD5 in PostgreSQL auth protocol |
+| mysql2 | **D+** | 2 critical | 2 high | SHA-1 in MySQL auth_41 protocol |
+| ssh2 | **D+** | 18 critical | 12 critical | DH, ECDH, Ed25519 in SSH key exchange |
+
+### Python Packages
+
+| Package | Grade | Raw Findings | Adjusted Risk | What We Found |
+|---------|-------|-------------|---------------|---------------|
+| requests | **A** | 5 critical | 3 low | MD5/SHA-1 in HTTP digest auth checksums |
+| boto3 | **A** | 1 critical | 1 informational | MD5 for S3 protocol compliance |
+| werkzeug | **C+** | 1 critical | 1 high | RSA in dev server TLS certificate |
+| aiohttp | **D+** | 3 critical | 2 critical | Crypto usage in client fingerprinting |
+| django | **D+** | 2 critical | 2 critical | MD5 in auth hashers, SHA-1 in uploads |
+| paramiko | **D-** | 10 critical | 10 critical | ECDSA, X25519, DH throughout SSH protocol |
+
+> Scanned with PostQuant v0.3.0 on March 3, 2026. "Raw Findings" = pattern matching only. "Adjusted Risk" = after context analysis.
+
+## Risk Assessment
+
+PostQuant v0.3.0 introduces context-aware risk assessment. Instead of blindly flagging every MD5 or SHA-1 as critical, the scanner reads surrounding code to understand *how* the algorithm is being used.
+
+**How it works:**
+
+1. **Pattern matching** finds cryptographic algorithm usage (MD5, SHA-1, RSA, ECDSA, etc.)
+2. **Context analysis** examines the surrounding code — file paths, variable names, function calls, API patterns
+3. **Risk adjustment** raises or lowers the finding's severity based on context signals
+
+**Context signals that decrease risk:**
+- Nearby code references `checksum`, `digest`, `fingerprint`, `uuid`
+- File paths suggest test fixtures or protocol compliance
+- API patterns match known non-security uses (e.g., PostgreSQL MD5 auth marked as legacy-support)
+
+**Context signals that increase risk:**
+- Nearby code references `password`, `authenticate`, `encrypt`, `secret`
+- File paths contain `auth/`, `security/`, `crypto/`
+- Algorithm used for digital signatures, key exchange, or session management
+
+**Result:** `uuid` using MD5 for checksums scores **A**. Django using MD5 for password hashing scores **D+**. Same algorithm, different risk.
+
+To disable context analysis and use raw pattern matching only:
+
+```bash
+npx postquant analyze . --no-context
+```
 
 ## Why
 
@@ -58,20 +132,42 @@ Most sites today score C+ or C. That's expected — almost nobody has deployed p
 
 ### Code Scanner
 
-Scan source code for quantum-vulnerable cryptographic patterns. 54 detection patterns across 4 languages (Python, JavaScript/TypeScript, Go, Java) with zero new runtime dependencies.
+Scan source code for quantum-vulnerable cryptographic patterns. 54 detection patterns across 4 languages (Python, JavaScript/TypeScript, Go, Java) with context-aware risk assessment.
 
 ```bash
 # Scan your project
 npx postquant analyze .
+
+# Show all findings including low-risk ones
+npx postquant analyze . --show-all
+
+# Skip context analysis, raw pattern matching only
+npx postquant analyze . --no-context
 
 # SARIF output for GitHub Code Scanning
 npx postquant analyze ./src --format sarif
 
 # CycloneDX CBOM for compliance
 npx postquant analyze . --format cbom
+```
 
-# Filter by language with verbose output
-npx postquant analyze . --language python --verbose
+Output with context labels:
+
+```
+  Overall Grade:  D+
+
+  Findings
+
+  django/contrib/auth/hashers.py (python)
+    L669: MD5              🔴 Critical — authentication
+
+  tests/file_uploads/tests.py (python)
+    L120: SHA-1            🔴 Critical — digital signature
+
+  Adjusted Risk (with context)
+    🔴 2 critical
+    🟢 4 low
+    🟢 2 informational
 ```
 
 ## Usage
@@ -125,7 +221,13 @@ postquant analyze . --ignore "vendor/**" --ignore "test/**"
 # Set fail threshold for CI
 postquant analyze ./src --fail-grade D
 
-# Show all findings including safe ones
+# Show all findings including low and informational risk
+postquant analyze ./src --show-all
+
+# Skip context analysis, use raw pattern matching only
+postquant analyze ./src --no-context
+
+# Show all findings including safe ones (legacy)
 postquant analyze ./src --verbose
 ```
 
@@ -180,8 +282,9 @@ npm run dev -- analyze ./src         # Code scan from source
 
 | Phase | Target | Status |
 |-------|--------|--------|
-| TLS scanner CLI | March 2026 | v0.2.0 |
-| Code scanner + CBOM | March 2026 | v0.2.0 |
+| TLS scanner CLI | March 2026 | v0.3.0 |
+| Code scanner + CBOM | March 2026 | v0.3.0 |
+| Context-aware risk assessment | March 2026 | v0.3.0 |
 | Migration playbook engine | April 2026 | Planned |
 | Web dashboard + Enterprise tier | May 2026 | Planned |
 | GitHub Actions Marketplace + CI/CD | June 2026 | Planned |
