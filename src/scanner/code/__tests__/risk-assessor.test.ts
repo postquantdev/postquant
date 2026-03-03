@@ -544,86 +544,90 @@ describe('detectFunctionNameSignals', () => {
 
 describe('detectProtocolPattern', () => {
   it('detects MD5 + uuid context as UUID v3 protocol', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['result = uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['result = uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
     const imports = 'import uuid';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
-    expect(signal!.value).toContain('UUID');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
+    expect(result!.signal.value).toContain('UUID');
+    expect(result!.contextOverride).toBe('protocol-compliance');
   });
 
   it('detects SHA-1 + uuid context as UUID v5 protocol', () => {
-    const finding = makeFinding({ algorithm: 'SHA-1' });
-    const nearbyLines = ['result = uuid.uuid5(uuid.NAMESPACE_URL, url)'];
+    const finding = makeFinding({ algorithm: 'SHA-1', line: 1 });
+    const lines = ['result = uuid.uuid5(uuid.NAMESPACE_URL, url)'];
     const imports = 'import uuid';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
-    expect(signal!.value).toContain('UUID');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
+    expect(result!.signal.value).toContain('UUID');
+    expect(result!.contextOverride).toBe('protocol-compliance');
   });
 
   it('detects MD5 + Content-MD5 as HTTP Content-MD5 protocol', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['headers["Content-MD5"] = base64(md5(body))'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['headers["Content-MD5"] = base64(md5(body))'];
     const imports = 'import boto3';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
-    expect(signal!.value).toContain('Content-MD5');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
+    expect(result!.signal.value).toContain('Content-MD5');
+    expect(result!.contextOverride).toBe('protocol-compliance');
   });
 
   it('detects MD5 + S3/AWS as Content-MD5 protocol', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['s3_client.put_object(Body=data)'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['s3_client.put_object(Body=data)'];
     const imports = 'import boto3';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
   });
 
   it('detects MD5 + postgres as PostgreSQL MD5 auth', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['conn = psycopg2.connect(host="localhost")'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['conn = psycopg2.connect(host="localhost")'];
     const imports = 'import psycopg2';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
-    expect(signal!.value).toContain('PostgreSQL');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
+    expect(result!.signal.value).toContain('PostgreSQL');
+    expect(result!.contextOverride).toBe('legacy-support');
   });
 
   it('detects SHA-1 + git as Git object hashing', () => {
-    const finding = makeFinding({ algorithm: 'SHA-1' });
-    const nearbyLines = ['object_hash = sha1(blob_data)'];
+    const finding = makeFinding({ algorithm: 'SHA-1', line: 1 });
+    const lines = ['object_hash = sha1(blob_data)'];
     const imports = 'import git';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).not.toBeNull();
-    expect(signal!.influence).toBe('decreases-risk');
-    expect(signal!.value).toContain('Git');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).not.toBeNull();
+    expect(result!.signal.influence).toBe('decreases-risk');
+    expect(result!.signal.value).toContain('Git');
   });
 
   it('returns null when no protocol pattern matches', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['result = md5(data)'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['result = md5(data)'];
     const imports = 'import os';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).toBeNull();
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).toBeNull();
   });
 
   it('returns null for non-matching algorithm', () => {
-    const finding = makeFinding({ algorithm: 'AES-128' });
-    const nearbyLines = ['uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
+    const finding = makeFinding({ algorithm: 'AES-128', line: 1 });
+    const lines = ['uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
     const imports = 'import uuid';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal).toBeNull();
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result).toBeNull();
   });
 
   it('signal has type api-pattern', () => {
-    const finding = makeFinding({ algorithm: 'MD5' });
-    const nearbyLines = ['uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
+    const finding = makeFinding({ algorithm: 'MD5', line: 1 });
+    const lines = ['uuid.uuid3(uuid.NAMESPACE_DNS, name)'];
     const imports = 'import uuid';
-    const signal = detectProtocolPattern(finding, nearbyLines, imports);
-    expect(signal!.type).toBe('api-pattern');
+    const result = detectProtocolPattern(finding, lines, 1, imports);
+    expect(result!.signal.type).toBe('api-pattern');
   });
 });
 
@@ -685,6 +689,18 @@ describe('resolveContext', () => {
     const result = resolveContext(signals);
     expect(result.context).toBe('unknown');
     expect(result.influence).toBe('neutral');
+  });
+
+  it('pg/psycopg/postgres signal resolves to legacy-support, not digital-signature', () => {
+    // Regression: "psycopg" contains "sign" as a substring.
+    // The sign/verify/signature regex must use word boundaries so it
+    // does not match inside library names like "psycopg".
+    const signals: ContextSignal[] = [
+      { type: 'import-context', value: 'pg/psycopg/postgres', influence: 'decreases-risk' },
+    ];
+    const result = resolveContext(signals);
+    expect(result.context).toBe('legacy-support');
+    expect(result.influence).toBe('decreases-risk');
   });
 });
 

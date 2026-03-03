@@ -49,7 +49,7 @@ function inferContextFromSignalValue(value: string): UsageContext {
   if (/password|passwd|pwd|hmac|token|jwt|bearer|oauth/.test(v)) return 'authentication';
   if (/encrypt|decrypt|cipher/.test(v)) return 'encryption';
   if (/key_exchange|kex|handshake/.test(v)) return 'key-exchange';
-  if (/sign|verify|signature/.test(v)) return 'digital-signature';
+  if (/(?<![a-zA-Z])sign(?![a-zA-Z])|(?<![a-zA-Z])verify(?![a-zA-Z])|(?<![a-zA-Z])signature(?![a-zA-Z])/.test(v)) return 'digital-signature';
 
   // decreases-risk contexts
   if (/uuid|rfc4122|rfc-4122|content-md5|content_md5/.test(v)) return 'protocol-compliance';
@@ -131,7 +131,7 @@ interface NearbyCodeRule {
 const NEARBY_CODE_RULES: NearbyCodeRule[] = [
   // increases-risk
   { pattern: /password|passwd|pwd/i, influence: 'increases-risk', label: 'password' },
-  { pattern: /\bsign\b|verify|signature/i, influence: 'increases-risk', label: 'sign/verify' },
+  { pattern: /(?<![a-zA-Z])sign(?![a-zA-Z])|(?<![a-zA-Z])verify(?![a-zA-Z])|(?<![a-zA-Z])signature(?![a-zA-Z])/i, influence: 'increases-risk', label: 'sign/verify' },
   { pattern: /encrypt|decrypt|cipher/i, influence: 'increases-risk', label: 'encrypt' },
   { pattern: /key_exchange|kex|handshake/i, influence: 'increases-risk', label: 'key_exchange' },
   { pattern: /\bhmac\b|\bHMAC\b/, influence: 'increases-risk', label: 'hmac' },
@@ -334,11 +334,26 @@ const PROTOCOL_RULES: ProtocolRule[] = [
   },
 ];
 
+export interface ProtocolPatternResult {
+  signal: ContextSignal;
+  contextOverride: UsageContext;
+}
+
+/** Shared helper: compute a line window around a 1-indexed lineNumber. */
+function computeWindow(lines: string[], lineNumber: number, windowSize: number = 5): string[] {
+  const idx = lineNumber - 1;
+  const start = Math.max(0, idx - windowSize);
+  const end = Math.min(lines.length - 1, idx + windowSize);
+  return lines.slice(start, end + 1);
+}
+
 export function detectProtocolPattern(
   finding: CodeFinding,
-  nearbyLines: string[],
+  lines: string[],
+  lineNumber: number,
   imports: string,
-): ContextSignal | null {
+): ProtocolPatternResult | null {
+  const nearbyLines = computeWindow(lines, lineNumber);
   const nearbyText = nearbyLines.join('\n');
 
   for (const rule of PROTOCOL_RULES) {
@@ -349,9 +364,12 @@ export function detectProtocolPattern(
 
     if (contextMatch || importMatch) {
       return {
-        type: 'api-pattern',
-        value: `${rule.protocolName} (${rule.contextOverride})`,
-        influence: 'decreases-risk',
+        signal: {
+          type: 'api-pattern',
+          value: `${rule.protocolName} (${rule.contextOverride})`,
+          influence: 'decreases-risk',
+        },
+        contextOverride: rule.contextOverride,
       };
     }
   }
@@ -470,15 +488,9 @@ function assessSingleFinding(
   const importSignals = detectImportSignals(content, finding.language);
   const functionNameSignals = detectFunctionNameSignals(finding.matchedLine);
 
-  // 2. Check protocol pattern
-  const windowSize = 5;
-  const idx = finding.line - 1;
-  const start = Math.max(0, idx - windowSize);
-  const end = Math.min(lines.length - 1, idx + windowSize);
-  const nearbyLines = lines.slice(start, end + 1);
+  // 2. Check protocol pattern (handles its own windowing)
   const importText = lines.slice(0, 50).join('\n');
-
-  const protocolSignal = detectProtocolPattern(finding, nearbyLines, importText);
+  const protocolResult = detectProtocolPattern(finding, lines, finding.line, importText);
 
   // 3. Merge all signals
   const allSignals: ContextSignal[] = [
@@ -487,24 +499,17 @@ function assessSingleFinding(
     ...importSignals,
     ...functionNameSignals,
   ];
-  if (protocolSignal) {
-    allSignals.push(protocolSignal);
+  if (protocolResult) {
+    allSignals.push(protocolResult.signal);
   }
 
   // 4. Resolve context
   let usageContext: UsageContext;
   const hasIncreasesRisk = allSignals.some(s => s.influence === 'increases-risk');
 
-  if (protocolSignal && !hasIncreasesRisk) {
+  if (protocolResult && !hasIncreasesRisk) {
     // Protocol pattern detected with no security-increasing signals => use protocol's context
-    const protocolRule = PROTOCOL_RULES.find(r => {
-      if (r.algorithm !== finding.algorithm) return false;
-      const nearbyText = nearbyLines.join('\n');
-      const contextMatch = r.contextPatterns.some(p => p.test(nearbyText));
-      const importMatch = r.importHints.some(p => p.test(importText));
-      return contextMatch || importMatch;
-    });
-    usageContext = protocolRule?.contextOverride ?? resolveContext(allSignals).context;
+    usageContext = protocolResult.contextOverride;
   } else {
     usageContext = resolveContext(allSignals).context;
   }
