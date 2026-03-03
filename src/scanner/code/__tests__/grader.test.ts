@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { gradeCodeScan, shouldFailForCodeGrade } from '../grader.js';
-import type { CodeFinding, CodeScanResult, Language } from '../../../types/index.js';
+import type {
+  CodeFinding,
+  CodeScanResult,
+  Language,
+  RiskLevel,
+  AdjustedRisk,
+  UsageContext,
+  AssessedFinding,
+} from '../../../types/index.js';
 
 function makeFinding(overrides: Partial<CodeFinding> = {}): CodeFinding {
   return {
@@ -29,6 +37,36 @@ function makeScanResult(findings: CodeFinding[]): CodeScanResult {
     filesWithFindings: uniqueFiles.size,
     languagesDetected: uniqueLangs,
     durationMs: 100,
+  };
+}
+
+function makeAssessedFinding(opts: {
+  algorithm?: string;
+  risk?: RiskLevel;
+  adjustedRisk: AdjustedRisk;
+  usageContext: UsageContext;
+  file?: string;
+  category?: CodeFinding['category'];
+}): AssessedFinding {
+  return {
+    patternId: 'test',
+    file: opts.file ?? 'test.py',
+    line: 1,
+    matchedLine: 'md5(x)',
+    language: 'python' as Language,
+    category: opts.category ?? 'weak-hash',
+    algorithm: opts.algorithm ?? 'MD5',
+    risk: opts.risk ?? 'critical',
+    reason: 'test',
+    migration: 'test',
+    confidence: 'medium',
+    originalRisk: opts.risk ?? 'critical',
+    riskContext: {
+      usageContext: opts.usageContext,
+      adjustedRisk: opts.adjustedRisk,
+      contextEvidence: [],
+      signals: [],
+    },
   };
 }
 
@@ -258,6 +296,170 @@ describe('gradeCodeScan', () => {
     ]));
     expect(result.grade).toBe('B-');
     expect(result.modifier).toBe('-');
+  });
+});
+
+describe('gradeCodeScan — adjusted risk (AssessedFinding)', () => {
+  it('excludes informational findings from grade → A', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        adjustedRisk: 'informational',
+        usageContext: 'test-fixture',
+        risk: 'critical',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('A');
+  });
+
+  it('counts critical adjustedRisk as critical → C range', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'RSA-2048',
+        adjustedRisk: 'critical',
+        usageContext: 'authentication',
+        risk: 'critical',
+        category: 'asymmetric-encryption',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('C');
+  });
+
+  it('counts high adjustedRisk as critical → C range', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'RSA-2048',
+        adjustedRisk: 'high',
+        usageContext: 'encryption',
+        risk: 'critical',
+        category: 'asymmetric-encryption',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('C');
+  });
+
+  it('counts medium adjustedRisk as moderate → B range', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        adjustedRisk: 'medium',
+        usageContext: 'integrity-check',
+        risk: 'critical',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('B');
+  });
+
+  it('excludes low adjustedRisk from grade → A', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        adjustedRisk: 'low',
+        usageContext: 'legacy-support',
+        risk: 'critical',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('A');
+  });
+
+  it('broken algo cap applies when adjustedRisk is critical', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'MD5',
+        adjustedRisk: 'critical',
+        usageContext: 'authentication',
+        risk: 'critical',
+        category: 'weak-hash',
+      }),
+    ]));
+    // 1 critical → C, but MD5 caps at D
+    expect(result.baseGrade).toBe('D');
+  });
+
+  it('broken algo cap applies when adjustedRisk is high', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'SHA-1',
+        adjustedRisk: 'high',
+        usageContext: 'encryption',
+        risk: 'critical',
+        category: 'weak-hash',
+      }),
+    ]));
+    // 1 critical → C, but SHA-1 caps at D
+    expect(result.baseGrade).toBe('D');
+  });
+
+  it('broken algo cap does NOT apply when adjustedRisk is informational', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'MD5',
+        adjustedRisk: 'informational',
+        usageContext: 'test-fixture',
+        risk: 'critical',
+        category: 'weak-hash',
+      }),
+    ]));
+    // MD5 present but informational, so no cap and no critical count → A
+    expect(result.baseGrade).toBe('A');
+  });
+
+  it('broken algo cap does NOT apply when adjustedRisk is low', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        algorithm: 'MD5',
+        adjustedRisk: 'low',
+        usageContext: 'documentation',
+        risk: 'critical',
+        category: 'weak-hash',
+      }),
+    ]));
+    expect(result.baseGrade).toBe('A');
+  });
+
+  it('raw findings (no riskContext) still work correctly', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeFinding({ risk: 'critical' }),
+      makeFinding({ risk: 'moderate', category: 'weak-symmetric', algorithm: 'AES-128', file: 'src/enc.py' }),
+    ]));
+    expect(result.baseGrade).toBe('C');
+    expect(result.summary.critical).toBe(1);
+    expect(result.summary.moderate).toBe(1);
+  });
+
+  it('mixes raw and assessed findings correctly', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeFinding({ risk: 'critical' }),
+      makeAssessedFinding({
+        adjustedRisk: 'informational',
+        usageContext: 'test-fixture',
+        risk: 'critical',
+        file: 'tests/test_crypto.py',
+      }),
+    ]));
+    // 1 raw critical + 1 assessed informational (excluded) → C
+    expect(result.baseGrade).toBe('C');
+    expect(result.summary.critical).toBe(1);
+  });
+
+  it('file breakdown uses adjusted risk for counts', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeAssessedFinding({
+        adjustedRisk: 'informational',
+        usageContext: 'test-fixture',
+        risk: 'critical',
+        file: 'tests/test_crypto.py',
+      }),
+      makeAssessedFinding({
+        adjustedRisk: 'medium',
+        usageContext: 'integrity-check',
+        risk: 'critical',
+        file: 'tests/test_crypto.py',
+      }),
+    ]));
+    const fb = result.fileBreakdown.find((f) => f.file === 'tests/test_crypto.py');
+    expect(fb).toBeDefined();
+    // informational → excluded (safe bucket), medium → moderate
+    expect(fb!.criticalCount).toBe(0);
+    expect(fb!.moderateCount).toBe(1);
+    expect(fb!.safeCount).toBe(1);
   });
 });
 

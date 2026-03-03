@@ -2,6 +2,7 @@ import type {
   CodeScanResult,
   CodeGradedResult,
   CodeFinding,
+  AssessedFinding,
   FileBreakdown,
   Grade,
   BaseGrade,
@@ -12,6 +13,32 @@ const BASE_GRADE_ORDER: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 
 /** Algorithms that are already broken classically — cap grade at D. */
 const BROKEN_ALGORITHMS = ['MD5', 'SHA-1', 'SHA1', 'DES', '3DES', 'TRIPLE-DES'];
+
+/** Type guard: does this finding carry risk-assessment context? */
+function isAssessedFinding(f: CodeFinding): f is AssessedFinding {
+  return 'riskContext' in f;
+}
+
+/**
+ * Map a finding to a grade bucket using adjusted risk when available,
+ * falling back to the raw `risk` field for unassessed findings.
+ */
+function getEffectiveGradeBucket(f: CodeFinding): 'critical' | 'moderate' | 'safe' | 'excluded' {
+  if (isAssessedFinding(f)) {
+    switch (f.riskContext.adjustedRisk) {
+      case 'critical':
+      case 'high':
+        return 'critical';
+      case 'medium':
+        return 'moderate';
+      case 'low':
+      case 'informational':
+        return 'excluded';
+    }
+  }
+  // Raw finding — use original risk
+  return f.risk === 'critical' ? 'critical' : f.risk === 'moderate' ? 'moderate' : 'safe';
+}
 
 /**
  * Grade a code scan result.
@@ -35,32 +62,45 @@ const BROKEN_ALGORITHMS = ['MD5', 'SHA-1', 'SHA1', 'DES', '3DES', 'TRIPLE-DES'];
 export function gradeCodeScan(scan: CodeScanResult): CodeGradedResult {
   const { findings } = scan;
 
-  const critical = findings.filter((f) => f.risk === 'critical');
-  const moderate = findings.filter((f) => f.risk === 'moderate');
-  const safe = findings.filter((f) => f.risk === 'safe');
+  // Count findings by effective grade bucket (uses adjustedRisk when available)
+  let critical = 0;
+  let moderate = 0;
+  let safe = 0;
+  for (const f of findings) {
+    const bucket = getEffectiveGradeBucket(f);
+    if (bucket === 'critical') critical++;
+    else if (bucket === 'moderate') moderate++;
+    else if (bucket === 'safe' || bucket === 'excluded') safe++;
+  }
 
   // Determine base grade from critical/moderate counts
   let baseGrade: BaseGrade;
 
-  if (critical.length === 0 && moderate.length === 0) {
+  if (critical === 0 && moderate === 0) {
     const hasPqc = findings.some((f) => f.category === 'pqc-algorithm');
     baseGrade = hasPqc ? 'A+' : 'A';
-  } else if (critical.length === 0) {
+  } else if (critical === 0) {
     baseGrade = 'B';
-  } else if (critical.length <= 5) {
+  } else if (critical <= 5) {
     baseGrade = 'C';
-  } else if (critical.length <= 20) {
+  } else if (critical <= 20) {
     baseGrade = 'D';
   } else {
     baseGrade = 'F';
   }
 
   // Special case: broken algorithms cap at D
-  const hasBrokenAlgo = findings.some((f) =>
-    BROKEN_ALGORITHMS.some((broken) =>
+  // Only applies when the finding's adjusted risk is critical or high
+  const hasBrokenAlgo = findings.some((f) => {
+    const isBroken = BROKEN_ALGORITHMS.some((broken) =>
       f.algorithm.toUpperCase() === broken.toUpperCase(),
-    ),
-  );
+    );
+    if (!isBroken) return false;
+    if (isAssessedFinding(f)) {
+      return f.riskContext.adjustedRisk === 'critical' || f.riskContext.adjustedRisk === 'high';
+    }
+    return true; // Raw finding — cap as before
+  });
   if (hasBrokenAlgo && gradeRank(baseGrade) < gradeRank('D')) {
     baseGrade = 'D';
   }
@@ -68,9 +108,9 @@ export function gradeCodeScan(scan: CodeScanResult): CodeGradedResult {
   // Compute modifier (same logic as TLS grader)
   let modifier: GradeModifier = '';
   if (baseGrade !== 'A+' && baseGrade !== 'A' && baseGrade !== 'F') {
-    if (moderate.length === 0) {
+    if (moderate === 0) {
       modifier = '+';
-    } else if (moderate.length >= 2) {
+    } else if (moderate >= 2) {
       modifier = '-';
     }
   }
@@ -94,9 +134,9 @@ export function gradeCodeScan(scan: CodeScanResult): CodeGradedResult {
     findings,
     migrationNotes: [...migrationSet],
     summary: {
-      critical: critical.length,
-      moderate: moderate.length,
-      safe: safe.length,
+      critical,
+      moderate,
+      safe,
       total: findings.length,
       filesScanned: scan.filesScanned,
       filesWithFindings: scan.filesWithFindings,
@@ -113,14 +153,25 @@ function buildFileBreakdown(findings: CodeFinding[]): FileBreakdown[] {
     byFile.set(f.file, list);
   }
 
-  return [...byFile.entries()].map(([file, fileFindgs]) => ({
-    file,
-    language: fileFindgs[0].language,
-    findings: fileFindgs,
-    criticalCount: fileFindgs.filter((f) => f.risk === 'critical').length,
-    moderateCount: fileFindgs.filter((f) => f.risk === 'moderate').length,
-    safeCount: fileFindgs.filter((f) => f.risk === 'safe').length,
-  }));
+  return [...byFile.entries()].map(([file, fileFindgs]) => {
+    let criticalCount = 0;
+    let moderateCount = 0;
+    let safeCount = 0;
+    for (const f of fileFindgs) {
+      const bucket = getEffectiveGradeBucket(f);
+      if (bucket === 'critical') criticalCount++;
+      else if (bucket === 'moderate') moderateCount++;
+      else safeCount++;
+    }
+    return {
+      file,
+      language: fileFindgs[0].language,
+      findings: fileFindgs,
+      criticalCount,
+      moderateCount,
+      safeCount,
+    };
+  });
 }
 
 /** Return numeric rank for a base grade (higher = worse). */
