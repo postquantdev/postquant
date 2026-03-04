@@ -1,7 +1,56 @@
 import tls from 'node:tls';
 import type { TlsScanResult } from '../types/index.js';
+import { probeWithOpenssl } from './openssl.js';
 
-export function scanHost(
+export async function scanHost(
+  host: string,
+  port: number,
+  timeout: number,
+): Promise<TlsScanResult> {
+  const result = await connectTls(host, port, timeout);
+
+  // Enrich with openssl probe for PQC detection
+  // Node.js returns {} for getEphemeralKeyInfo() on TLS 1.3
+  try {
+    const probe = await probeWithOpenssl(host, port);
+
+    if (probe.group) {
+      const groupUpper = probe.group.toUpperCase();
+      const isPqc =
+        groupUpper.includes('KYBER') ||
+        groupUpper.includes('MLKEM') ||
+        groupUpper.includes('ML-KEM');
+
+      if (isPqc) {
+        result.ephemeralKeyInfo = {
+          type: 'KEM',
+          name: probe.group,
+          size: 0,
+        };
+      } else if (!result.ephemeralKeyInfo) {
+        // Classical group detected by openssl, Node.js had nothing
+        result.ephemeralKeyInfo = {
+          type: 'ECDH',
+          name: probe.group,
+          size: 0,
+        };
+      }
+    } else if (!result.ephemeralKeyInfo && probe.peerTempKey) {
+      // No negotiated group line but we got Peer Temp Key info
+      result.ephemeralKeyInfo = {
+        type: probe.peerTempKey.type,
+        name: probe.peerTempKey.name,
+        size: probe.peerTempKey.size,
+      };
+    }
+  } catch {
+    // openssl probe failed — keep Node.js data as-is
+  }
+
+  return result;
+}
+
+function connectTls(
   host: string,
   port: number,
   timeout: number,

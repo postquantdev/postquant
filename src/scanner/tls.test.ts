@@ -4,6 +4,9 @@ import { scanHost } from './tls.js';
 import { EventEmitter } from 'node:events';
 
 vi.mock('node:tls');
+vi.mock('./openssl.js', () => ({
+  probeWithOpenssl: vi.fn().mockResolvedValue({ group: null, peerTempKey: null }),
+}));
 
 function createMockSocket() {
   const socket = new EventEmitter() as any;

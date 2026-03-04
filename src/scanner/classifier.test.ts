@@ -146,6 +146,15 @@ describe('classify', () => {
       expect(finding?.risk).toBe('safe');
     });
 
+    it('classifies X25519MLKEM768 from openssl probe as safe', () => {
+      const scan = makeScanResult();
+      scan.ephemeralKeyInfo = { type: 'KEM', name: 'X25519MLKEM768', size: 0 };
+      const result = classify(scan);
+      const finding = result.findings.find((f) => f.component === 'keyExchange');
+      expect(finding?.risk).toBe('safe');
+      expect(finding?.algorithm).toBe('X25519MLKEM768');
+    });
+
     it('infers X25519 for TLS 1.3 when ephemeral key info is empty', () => {
       const scan = makeScanResult();
       scan.ephemeralKeyInfo = null;

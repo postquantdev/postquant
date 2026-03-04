@@ -102,7 +102,7 @@ function isPqcKeyExchange(scan: TlsScanResult): boolean {
   const ephName = scan.ephemeralKeyInfo?.name?.toUpperCase() ?? '';
   const cipherName = scan.cipher?.name?.toUpperCase() ?? '';
 
-  const pqcPatterns = ['KYBER', 'MLKEM', 'ML-KEM'];
+  const pqcPatterns = ['KYBER', 'MLKEM', 'ML-KEM', 'X25519MLKEM'];
   return pqcPatterns.some(
     (p) => ephName.includes(p) || cipherName.includes(p),
   );
