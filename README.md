@@ -7,6 +7,10 @@
 
 PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, and Java.
 
+## What's New in v0.4.0
+
+v0.4.0 detects hybrid post-quantum key exchanges (X25519MLKEM768) via OpenSSL probing. Cloudflare and Google both negotiate hybrid PQC — PostQuant now sees it.
+
 ## What Makes v0.3.0 Different
 
 PostQuant doesn't just find algorithms — it understands context.
@@ -19,16 +23,16 @@ Same algorithm. Different context. Different risk. That distinction matters.
 
 ## TLS Scan Results
 
-We scanned major sites with PostQuant v0.3.0. Nobody has deployed post-quantum cryptography yet:
+We scanned major sites with PostQuant v0.4.0. Cloudflare and Google now negotiate hybrid PQC key exchange:
 
 | Site | Grade | Certificate | Key Exchange | Cipher | Hash |
 |------|-------|-------------|--------------|--------|------|
-| google.com | **C+** | RSA-2048 | X25519 | AES-256 | SHA-384 |
-| cloudflare.com | **C+** | ECDSA P-256 | X25519 | AES-256 | SHA-384 |
+| google.com | **C+** | RSA-2048 | X25519MLKEM768 | AES-256 | SHA-384 |
+| cloudflare.com | **C+** | ECDSA P-256 | X25519MLKEM768 | AES-256 | SHA-384 |
 | stripe.com | **C+** | ECDSA P-256 | X25519 | AES-256 | SHA-384 |
 | github.com | **C** | ECDSA P-256 | X25519 | AES-256 | SHA-256 |
 
-> Scanned with PostQuant v0.3.0 on March 3, 2026. C+ = best classical crypto (AES-256, SHA-384) but no PQC. C = SHA-256 instead of SHA-384.
+> Scanned with PostQuant v0.4.0 on March 4, 2026. Hybrid PQC key exchange (X25519MLKEM768) is now detected via OpenSSL probing. Grade remains C+ because certificates still use classical algorithms (RSA/ECDSA) — no CA supports PQC certificates yet.
 
 ## Framework Scan Results
 
@@ -285,6 +289,7 @@ npm run dev -- analyze ./src         # Code scan from source
 | TLS scanner CLI | March 2026 | v0.3.0 |
 | Code scanner + CBOM | March 2026 | v0.3.0 |
 | Context-aware risk assessment | March 2026 | v0.3.0 |
+| Hybrid PQC detection (OpenSSL probe) | March 2026 | v0.4.0 |
 | Migration playbook engine | April 2026 | Planned |
 | Web dashboard + Enterprise tier | May 2026 | Planned |
 | GitHub Actions Marketplace + CI/CD | June 2026 | Planned |
