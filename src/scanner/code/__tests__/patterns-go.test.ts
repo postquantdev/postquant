@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('Go patterns', () => {
-  it('exports 13 patterns', () => {
-    expect(goPatterns).toHaveLength(13);
+  it('exports 16 patterns', () => {
+    expect(goPatterns).toHaveLength(16);
   });
 
   describe.each(goPatterns)('$id', (pattern) => {
@@ -107,5 +107,74 @@ describe('Go patterns', () => {
 
   it('sha256 is safe', () => {
     expect(byId('go-sha256').risk).toBe('safe');
+  });
+
+  // --- PQC patterns ---
+  describe('PQC patterns', () => {
+    it('go-pqc-circl-kem matches circl/kem/mlkem import', () => {
+      expect(importMatches(byId('go-pqc-circl-kem'), '"github.com/cloudflare/circl/kem/mlkem"')).toBe(true);
+    });
+
+    it('go-pqc-circl-kem matches circl/kem/kyber import', () => {
+      expect(importMatches(byId('go-pqc-circl-kem'), '"github.com/cloudflare/circl/kem/kyber"')).toBe(true);
+    });
+
+    it('go-pqc-circl-kem matches mlkem.KeyGen call', () => {
+      expect(callMatches(byId('go-pqc-circl-kem'), 'pk, sk := mlkem.KeyGen()')).toBe(true);
+    });
+
+    it('go-pqc-circl-kem matches kyber.Encapsulate call', () => {
+      expect(callMatches(byId('go-pqc-circl-kem'), 'ct, ss := kyber.Encapsulate(pk)')).toBe(true);
+    });
+
+    it('go-pqc-circl-kem is safe', () => {
+      expect(byId('go-pqc-circl-kem').risk).toBe('safe');
+    });
+
+    it('go-pqc-circl-sig matches circl/sign/mldsa import', () => {
+      expect(importMatches(byId('go-pqc-circl-sig'), '"github.com/cloudflare/circl/sign/mldsa"')).toBe(true);
+    });
+
+    it('go-pqc-circl-sig matches circl/sign/dilithium import', () => {
+      expect(importMatches(byId('go-pqc-circl-sig'), '"github.com/cloudflare/circl/sign/dilithium"')).toBe(true);
+    });
+
+    it('go-pqc-circl-sig matches mldsa.Sign call', () => {
+      expect(callMatches(byId('go-pqc-circl-sig'), 'sig := mldsa.Sign(sk, msg)')).toBe(true);
+    });
+
+    it('go-pqc-circl-sig matches dilithium.Verify call', () => {
+      expect(callMatches(byId('go-pqc-circl-sig'), 'ok := dilithium.Verify(pk, msg, sig)')).toBe(true);
+    });
+
+    it('go-pqc-circl-sig is safe', () => {
+      expect(byId('go-pqc-circl-sig').risk).toBe('safe');
+    });
+
+    it('go-pqc-stdlib matches crypto/mlkem import', () => {
+      expect(importMatches(byId('go-pqc-stdlib'), '"crypto/mlkem"')).toBe(true);
+    });
+
+    it('go-pqc-stdlib matches crypto/mldsa import', () => {
+      expect(importMatches(byId('go-pqc-stdlib'), '"crypto/mldsa"')).toBe(true);
+    });
+
+    it('go-pqc-stdlib matches mlkem.GenerateKey call', () => {
+      expect(callMatches(byId('go-pqc-stdlib'), 'pk, sk, err := mlkem.GenerateKey()')).toBe(true);
+    });
+
+    it('go-pqc-stdlib matches mldsa.Sign call', () => {
+      expect(callMatches(byId('go-pqc-stdlib'), 'sig := mldsa.Sign(sk, msg)')).toBe(true);
+    });
+
+    it('go-pqc-stdlib is safe', () => {
+      expect(byId('go-pqc-stdlib').risk).toBe('safe');
+    });
+
+    it('all PQC patterns are categorized as pqc-algorithm', () => {
+      const pqc = goPatterns.filter((p) => p.id.includes('-pqc-'));
+      expect(pqc).toHaveLength(3);
+      pqc.forEach((p) => expect(p.category).toBe('pqc-algorithm'));
+    });
   });
 });

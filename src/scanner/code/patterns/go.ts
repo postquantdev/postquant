@@ -224,4 +224,58 @@ export const goPatterns: CryptoPattern[] = [
     description: "AES with 128-bit keys provides reduced security against quantum attacks (Grover's algorithm)",
     migration: 'Use AES-256 (32-byte key) for quantum-resistant symmetric encryption',
   },
+  {
+    id: 'go-pqc-circl-kem',
+    language: 'go',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-KEM',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /circl\/kem\/mlkem/,
+      /circl\/kem\/kyber/,
+    ],
+    callPatterns: [
+      /mlkem\.\w+/,
+      /kyber\.\w+/,
+    ],
+    description: 'Cloudflare circl ML-KEM (FIPS 203) implementation',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+  },
+  {
+    id: 'go-pqc-circl-sig',
+    language: 'go',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-DSA',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /circl\/sign\/mldsa/,
+      /circl\/sign\/dilithium/,
+    ],
+    callPatterns: [
+      /mldsa\.\w+/,
+      /dilithium\.\w+/,
+    ],
+    description: 'Cloudflare circl ML-DSA (FIPS 204) implementation',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+  },
+  {
+    id: 'go-pqc-stdlib',
+    language: 'go',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-KEM',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /crypto\/mlkem/,
+      /crypto\/mldsa/,
+    ],
+    callPatterns: [
+      /mlkem\./,
+      /mldsa\./,
+    ],
+    description: 'Go stdlib PQC support (Go 1.24+)',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+  },
 ];
