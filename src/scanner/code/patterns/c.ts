@@ -1,4 +1,4 @@
-import type { CryptoPattern } from '../../../types/index.js';
+import type { CryptoPattern, RiskLevel } from '../../../types/index.js';
 
 export const cPatterns: CryptoPattern[] = [
   // === OpenSSL ===
@@ -178,9 +178,9 @@ export const cPatterns: CryptoPattern[] = [
   {
     id: 'c-aes',
     language: 'c',
-    category: 'safe-symmetric',
+    category: 'weak-symmetric',
     algorithm: 'AES',
-    risk: 'safe',
+    risk: 'moderate',
     confidence: 'medium',
     callPatterns: [
       /EVP_aes_\d+_\w+\s*\(\)/,
@@ -189,8 +189,10 @@ export const cPatterns: CryptoPattern[] = [
       /AES_encrypt\s*\(/,
       /AES_cbc_encrypt\s*\(/,
     ],
-    description: 'AES is a quantum-resistant symmetric encryption algorithm',
-    migration: 'No migration needed — already quantum-safe',
+    keySizeExtractor: /EVP_aes_(\d+)/,
+    keySizeRisk: (size: number): RiskLevel => (size >= 256 ? 'safe' : 'moderate'),
+    description: "AES-128 provides reduced security against quantum attacks (Grover's algorithm)",
+    migration: 'Use AES-256 for quantum-resistant symmetric encryption',
   },
   // === libsodium ===
   {

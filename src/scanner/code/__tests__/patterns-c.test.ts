@@ -191,14 +191,52 @@ describe('C/C++ patterns', () => {
     expect(byId('c-sha256').risk).toBe('safe');
   });
 
-  it('aes is safe', () => {
-    expect(byId('c-aes').risk).toBe('safe');
+  it('aes default risk is moderate', () => {
+    expect(byId('c-aes').risk).toBe('moderate');
   });
 
   it('all non-PQC patterns have medium confidence', () => {
     cPatterns
       .filter((p) => p.category !== 'pqc-algorithm')
       .forEach((p) => expect(p.confidence).toBe('medium'));
+  });
+
+  describe('c-aes key-size risk', () => {
+    const aes = byId('c-aes');
+
+    it('has a keySizeExtractor', () => {
+      expect(aes.keySizeExtractor).toBeDefined();
+    });
+
+    it('has a keySizeRisk function', () => {
+      expect(aes.keySizeRisk).toBeDefined();
+    });
+
+    it('extracts key size from EVP_aes_256_gcm()', () => {
+      const match = aes.keySizeExtractor!.exec('EVP_aes_256_gcm()');
+      expect(match).not.toBeNull();
+      const size = parseInt(match![1], 10);
+      expect(size).toBe(256);
+    });
+
+    it('extracts key size from EVP_aes_128_cbc()', () => {
+      const match = aes.keySizeExtractor!.exec('EVP_aes_128_cbc()');
+      expect(match).not.toBeNull();
+      const size = parseInt(match![1], 10);
+      expect(size).toBe(128);
+    });
+
+    it('classifies AES-256 as safe', () => {
+      expect(aes.keySizeRisk!(256)).toBe('safe');
+    });
+
+    it('classifies AES-128 as moderate', () => {
+      expect(aes.keySizeRisk!(128)).toBe('moderate');
+    });
+
+    it('classifies AES-192 as moderate', () => {
+      expect(aes.keySizeRisk!(192)).toBe('moderate');
+    });
   });
 
   describe('PQC patterns', () => {
