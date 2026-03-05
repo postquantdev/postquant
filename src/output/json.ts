@@ -24,6 +24,7 @@ export function formatJson(results: GradedResult[]): string {
       grade: r.grade,
       baseGrade: r.baseGrade,
       modifier: r.modifier,
+      pqcDetected: r.pqcDetected,
       findings: r.findings,
       summary: r.summary,
       migrationNotes: r.migrationNotes,

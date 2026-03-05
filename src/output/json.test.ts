@@ -46,6 +46,7 @@ function makeGradedResult(overrides: Partial<GradedResult> = {}): GradedResult {
         reason: 'Sufficient post-quantum security margin',
       },
     ],
+    pqcDetected: false,
     migrationNotes: ['ML-DSA (FIPS 204)', 'ML-KEM (FIPS 203)'],
     summary: { critical: 2, moderate: 0, safe: 3, total: 5 },
     ...overrides,
@@ -91,6 +92,18 @@ describe('formatJson', () => {
     expect(parsed.results).toHaveLength(2);
     expect(parsed.results[0].target).toBe('a.com:443');
     expect(parsed.results[1].target).toBe('b.com:443');
+  });
+
+  it('includes pqcDetected in JSON output', () => {
+    const output = formatJson([makeGradedResult({ pqcDetected: false })]);
+    const parsed = JSON.parse(output);
+    expect(parsed.results[0].pqcDetected).toBe(false);
+  });
+
+  it('includes pqcDetected true when set', () => {
+    const output = formatJson([makeGradedResult({ pqcDetected: true })]);
+    const parsed = JSON.parse(output);
+    expect(parsed.results[0].pqcDetected).toBe(true);
   });
 
   it('formats with 2-space indentation', () => {
