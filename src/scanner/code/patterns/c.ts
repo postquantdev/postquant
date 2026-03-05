@@ -321,4 +321,38 @@ export const cPatterns: CryptoPattern[] = [
     nistRef: 'FIPS 203/204',
     cweId: 'CWE-327',
   },
+  // === PQC (liboqs) ===
+  {
+    id: 'c-pqc-oqs-kem',
+    language: 'c',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-KEM',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [/#include\s+[<"]oqs\/oqs\.h[>"]/],
+    callPatterns: [
+      /OQS_KEM_new\s*\(/,
+      /OQS_KEM_keypair\s*\(/,
+      /OQS_KEM_encaps\s*\(/,
+      /OQS_KEM_decaps\s*\(/,
+    ],
+    description: 'liboqs ML-KEM (FIPS 203) key encapsulation',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+  },
+  {
+    id: 'c-pqc-oqs-sig',
+    language: 'c',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-DSA',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [/#include\s+[<"]oqs\/oqs\.h[>"]/],
+    callPatterns: [
+      /OQS_SIG_new\s*\(/,
+      /OQS_SIG_sign\s*\(/,
+      /OQS_SIG_verify\s*\(/,
+    ],
+    description: 'liboqs ML-DSA (FIPS 204) digital signature',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+  },
 ];

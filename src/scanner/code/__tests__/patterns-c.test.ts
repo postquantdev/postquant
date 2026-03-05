@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('C/C++ patterns', () => {
-  it('exports 16 patterns', () => {
-    expect(cPatterns).toHaveLength(16);
+  it('exports 18 patterns', () => {
+    expect(cPatterns).toHaveLength(18);
   });
 
   describe.each(cPatterns)('$id', (pattern) => {
@@ -195,7 +195,47 @@ describe('C/C++ patterns', () => {
     expect(byId('c-aes').risk).toBe('safe');
   });
 
-  it('all patterns have medium confidence', () => {
-    cPatterns.forEach((p) => expect(p.confidence).toBe('medium'));
+  it('all non-PQC patterns have medium confidence', () => {
+    cPatterns
+      .filter((p) => p.category !== 'pqc-algorithm')
+      .forEach((p) => expect(p.confidence).toBe('medium'));
+  });
+
+  describe('PQC patterns', () => {
+    it('c-pqc-oqs-kem matches liboqs KEM calls', () => {
+      const p = byId('c-pqc-oqs-kem');
+      expect(callMatches(p, 'OQS_KEM_new("ML-KEM-768")')).toBe(true);
+      expect(callMatches(p, 'OQS_KEM_keypair(kem, pk, sk)')).toBe(true);
+      expect(callMatches(p, 'OQS_KEM_encaps(kem, ct, ss, pk)')).toBe(true);
+      expect(callMatches(p, 'OQS_KEM_decaps(kem, ss, ct, sk)')).toBe(true);
+    });
+
+    it('c-pqc-oqs-kem import matches', () => {
+      const p = byId('c-pqc-oqs-kem');
+      expect(importMatches(p, '#include <oqs/oqs.h>')).toBe(true);
+      expect(importMatches(p, '#include "oqs/oqs.h"')).toBe(true);
+    });
+
+    it('c-pqc-oqs-sig matches liboqs SIG calls', () => {
+      const p = byId('c-pqc-oqs-sig');
+      expect(callMatches(p, 'OQS_SIG_new("ML-DSA-65")')).toBe(true);
+      expect(callMatches(p, 'OQS_SIG_sign(sig, signature, &sig_len, message, msg_len, sk)')).toBe(true);
+      expect(callMatches(p, 'OQS_SIG_verify(sig, message, msg_len, signature, sig_len, pk)')).toBe(true);
+    });
+
+    it('c-pqc-oqs-sig import matches', () => {
+      const p = byId('c-pqc-oqs-sig');
+      expect(importMatches(p, '#include <oqs/oqs.h>')).toBe(true);
+      expect(importMatches(p, '#include "oqs/oqs.h"')).toBe(true);
+    });
+
+    it('all PQC patterns are safe with high confidence', () => {
+      const pqc = cPatterns.filter((p) => p.category === 'pqc-algorithm');
+      expect(pqc).toHaveLength(2);
+      pqc.forEach((p) => {
+        expect(p.risk).toBe('safe');
+        expect(p.confidence).toBe('high');
+      });
+    });
   });
 });
