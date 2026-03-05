@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('Java patterns', () => {
-  it('exports 14 patterns', () => {
-    expect(javaPatterns).toHaveLength(14);
+  it('exports 17 patterns', () => {
+    expect(javaPatterns).toHaveLength(17);
   });
 
   describe.each(javaPatterns)('$id', (pattern) => {
@@ -114,5 +114,55 @@ describe('Java patterns', () => {
 
   it('sha256 is safe', () => {
     expect(byId('java-sha256').risk).toBe('safe');
+  });
+
+  describe('PQC patterns', () => {
+    it('java-pqc-bc-provider matches Bouncy Castle PQC provider', () => {
+      const p = byId('java-pqc-bc-provider');
+      expect(callMatches(p, 'new BouncyCastlePQCProvider()')).toBe(true);
+      expect(callMatches(p, 'KeyGenerator.getInstance("ML-KEM-768")')).toBe(true);
+      expect(callMatches(p, 'KeyGenerator.getInstance("Kyber512")')).toBe(true);
+      expect(callMatches(p, 'Signature.getInstance("Dilithium3")')).toBe(true);
+      expect(callMatches(p, 'Signature.getInstance("SLH-DSA-SHA2-128s")')).toBe(true);
+      expect(callMatches(p, 'Signature.getInstance("SPHINCS+-SHA2-128s")')).toBe(true);
+    });
+
+    it('java-pqc-bc-provider import matches', () => {
+      const p = byId('java-pqc-bc-provider');
+      expect(importMatches(p, 'import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;')).toBe(true);
+      expect(importMatches(p, 'Security.addProvider(new BouncyCastlePQCProvider());')).toBe(true);
+    });
+
+    it('java-pqc-kem matches ML-KEM usage', () => {
+      const p = byId('java-pqc-kem');
+      expect(callMatches(p, 'KeyGenerator.getInstance("ML-KEM-768")')).toBe(true);
+      expect(callMatches(p, 'KEM.getInstance("ML-KEM-768")')).toBe(true);
+    });
+
+    it('java-pqc-kem import matches', () => {
+      const p = byId('java-pqc-kem');
+      expect(importMatches(p, 'import org.example.mlkem.KeyEncapsulation;')).toBe(true);
+      expect(importMatches(p, 'import com.example.kyber.KyberKEM;')).toBe(true);
+      expect(importMatches(p, 'import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;')).toBe(true);
+    });
+
+    it('java-pqc-sig matches ML-DSA/SLH-DSA usage', () => {
+      const p = byId('java-pqc-sig');
+      expect(callMatches(p, 'Signature.getInstance("ML-DSA-65")')).toBe(true);
+      expect(callMatches(p, 'Signature.getInstance("SLH-DSA-SHA2-128s")')).toBe(true);
+    });
+
+    it('java-pqc-sig import matches', () => {
+      const p = byId('java-pqc-sig');
+      expect(importMatches(p, 'import org.example.mldsa.Signer;')).toBe(true);
+      expect(importMatches(p, 'import com.example.dilithium.DilithiumSig;')).toBe(true);
+      expect(importMatches(p, 'import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;')).toBe(true);
+    });
+
+    it('all PQC patterns are safe', () => {
+      const pqc = javaPatterns.filter((p) => p.category === 'pqc-algorithm');
+      expect(pqc).toHaveLength(3);
+      pqc.forEach((p) => expect(p.risk).toBe('safe'));
+    });
   });
 });
