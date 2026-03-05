@@ -130,4 +130,26 @@ describe('analyzeCommand', () => {
     const plain = output.replace(/\u001b\[[0-9;]*m/g, '');
     expect(plain).toContain('Migration');
   });
+
+  it('scans a single C file path', async () => {
+    const { output, exitCode } = await analyzeCommand(
+      join(FIXTURES, 'c', 'vulnerable.c'),
+      defaultOptions({ format: 'json' }),
+    );
+    const parsed = JSON.parse(output);
+    expect(parsed.summary.filesScanned).toBe(1);
+    expect(parsed.findings.length).toBeGreaterThan(0);
+    expect(parsed.findings[0].language).toBe('c');
+  });
+
+  it('scans a single Rust file path', async () => {
+    const { output, exitCode } = await analyzeCommand(
+      join(FIXTURES, 'rust', 'vulnerable.rs'),
+      defaultOptions({ format: 'json' }),
+    );
+    const parsed = JSON.parse(output);
+    expect(parsed.summary.filesScanned).toBe(1);
+    expect(parsed.findings.length).toBeGreaterThan(0);
+    expect(parsed.findings[0].language).toBe('rust');
+  });
 });

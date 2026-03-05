@@ -3,7 +3,7 @@ import { join, extname, basename } from 'node:path';
 import type { Language, DiscoveredFile } from '../../types/index.js';
 
 /** Extension → Language mapping. TypeScript maps to 'javascript'. */
-const EXTENSION_MAP: Record<string, Language> = {
+export const EXTENSION_MAP: Record<string, Language> = {
   '.py': 'python',
   '.pyw': 'python',
   '.pyi': 'python',

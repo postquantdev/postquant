@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises';
 import { join, resolve, basename, extname } from 'node:path';
 import chalk from 'chalk';
-import { discoverFiles } from '../scanner/code/discovery.js';
+import { discoverFiles, EXTENSION_MAP } from '../scanner/code/discovery.js';
 import { matchFile } from '../scanner/code/matcher.js';
 import { classifyCodeFindings } from '../scanner/code/classifier.js';
 import { assessFindings } from '../scanner/code/risk-assessor.js';
@@ -12,22 +12,6 @@ import { formatSarif } from '../output/sarif.js';
 import { formatCbom } from '../output/cbom.js';
 import type { AnalyzeOptions, CodeFinding, Language, Grade } from '../types/index.js';
 
-/** Extension → Language mapping (duplicated from discovery for single-file mode). */
-const EXTENSION_MAP: Record<string, Language> = {
-  '.py': 'python',
-  '.pyw': 'python',
-  '.pyi': 'python',
-  '.js': 'javascript',
-  '.mjs': 'javascript',
-  '.cjs': 'javascript',
-  '.jsx': 'javascript',
-  '.ts': 'javascript',
-  '.mts': 'javascript',
-  '.cts': 'javascript',
-  '.tsx': 'javascript',
-  '.go': 'go',
-  '.java': 'java',
-};
 
 interface AnalyzeResult {
   exitCode: number;
