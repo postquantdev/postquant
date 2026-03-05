@@ -17,6 +17,8 @@ export interface ASTPattern {
   requiredImports?: ImportConstraint[];
   /** Method names to match against @method capture (case-sensitive) */
   methodNames?: string[];
+  /** If set, the first argument text must match this regex (for disambiguation) */
+  firstArgPattern?: RegExp;
   description: string;
   migration: string;
 }
