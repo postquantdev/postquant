@@ -17,6 +17,13 @@ const EXTENSION_MAP: Record<string, Language> = {
   '.tsx': 'javascript',
   '.go': 'go',
   '.java': 'java',
+  '.c': 'c',
+  '.h': 'c',
+  '.cpp': 'c',
+  '.hpp': 'c',
+  '.cc': 'c',
+  '.cxx': 'c',
+  '.rs': 'rust',
 };
 
 /** Directories and patterns always ignored regardless of config. */

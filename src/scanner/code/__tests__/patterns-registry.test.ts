@@ -26,13 +26,27 @@ describe('Pattern registry', () => {
     patterns.forEach((p) => expect(p.language).toBe('java'));
   });
 
+  it('returns C patterns for c language', () => {
+    const patterns = getPatterns('c');
+    expect(patterns.length).toBeGreaterThan(0);
+    patterns.forEach((p) => expect(p.language).toBe('c'));
+  });
+
+  it('returns Rust patterns for rust language', () => {
+    const patterns = getPatterns('rust');
+    expect(patterns.length).toBeGreaterThan(0);
+    patterns.forEach((p) => expect(p.language).toBe('rust'));
+  });
+
   it('getAllPatterns returns all patterns from all languages', () => {
     const all = getAllPatterns();
     const python = getPatterns('python');
     const js = getPatterns('javascript');
     const go = getPatterns('go');
     const java = getPatterns('java');
-    expect(all).toHaveLength(python.length + js.length + go.length + java.length);
+    const c = getPatterns('c');
+    const rust = getPatterns('rust');
+    expect(all).toHaveLength(python.length + js.length + go.length + java.length + c.length + rust.length);
   });
 
   it('all pattern IDs are unique', () => {
