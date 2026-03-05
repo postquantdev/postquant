@@ -47,6 +47,8 @@ We scanned popular open-source frameworks with PostQuant v0.3.0:
 
 > Scanned with PostQuant v0.3.0 on March 3, 2026. Run `npx postquant analyze <path>` to scan your own projects.
 
+> **Note:** Detection uses pattern matching, not AST analysis. Results may miss obfuscated or indirect crypto usage.
+
 ## Package Scan Results
 
 We scanned popular npm and PyPI packages. Context-aware risk assessment separates real threats from protocol compliance:
@@ -295,6 +297,19 @@ npm run dev -- analyze ./src         # Code scan from source
 | GitHub Actions Marketplace + CI/CD | June 2026 | Planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
+
+## Limitations
+
+PostQuant's code scanner uses regex-based pattern matching. This is fast and works well for common crypto usage, but has known blind spots:
+
+- **No AST parsing** — Obfuscated, aliased, or dynamically constructed crypto calls may not be detected.
+- **No cross-function data flow** — If a key size is defined in one function and used in another, the scanner won't correlate them.
+- **No runtime analysis** — Crypto operations triggered by configuration files, environment variables, or runtime logic are not visible.
+- **Key size extraction is best-effort** — Some patterns detect the algorithm but not the key size, especially for indirect parameter passing.
+
+Context-aware risk assessment (v0.3.0+) mitigates some false positives but cannot eliminate them entirely. When in doubt, PostQuant errs on the side of flagging (false positives over false negatives).
+
+For the TLS scanner, detection accuracy depends on the server's TLS configuration and the local OpenSSL version. Hybrid PQC detection requires OpenSSL 3.5+.
 
 ## Contributing
 
