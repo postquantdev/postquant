@@ -1,7 +1,15 @@
 import tls from 'node:tls';
+import chalk from 'chalk';
 import type { TlsScanResult } from '../types/index.js';
-import { probeWithOpenssl } from './openssl.js';
+import { probeWithOpenssl, findOpenssl3 } from './openssl.js';
 import { validateHostname, validatePort } from '../utils/validate.js';
+
+let opensslWarningShown = false;
+
+/** @internal — for testing only */
+export function _resetOpensslWarning(): void {
+  opensslWarningShown = false;
+}
 
 export async function scanHost(
   host: string,
@@ -17,42 +25,56 @@ export async function scanHost(
 
   const result = await connectTls(host, port, timeout);
 
-  // Enrich with openssl probe for PQC detection
-  // Node.js returns {} for getEphemeralKeyInfo() on TLS 1.3
+  // Check OpenSSL availability and warn if missing
+  let opensslAvailable = false;
   try {
-    const probe = await probeWithOpenssl(host, port);
+    opensslAvailable = (await findOpenssl3()) !== null;
+  } catch {
+    // findOpenssl3 failed entirely
+  }
 
-    if (probe.group) {
-      const groupUpper = probe.group.toUpperCase();
-      const isPqc =
-        groupUpper.includes('KYBER') ||
-        groupUpper.includes('MLKEM') ||
-        groupUpper.includes('ML-KEM');
+  if (!opensslAvailable && !opensslWarningShown) {
+    opensslWarningShown = true;
+    process.stderr.write(
+      chalk.yellow('Warning: OpenSSL 3.5+ not found — PQC key exchange detection unavailable\n'),
+    );
+  }
 
-      if (isPqc) {
+  // Enrich with openssl probe for PQC detection
+  if (opensslAvailable) {
+    try {
+      const probe = await probeWithOpenssl(host, port);
+
+      if (probe.group) {
+        const groupUpper = probe.group.toUpperCase();
+        const isPqc =
+          groupUpper.includes('KYBER') ||
+          groupUpper.includes('MLKEM') ||
+          groupUpper.includes('ML-KEM');
+
+        if (isPqc) {
+          result.ephemeralKeyInfo = {
+            type: 'KEM',
+            name: probe.group,
+            size: 0,
+          };
+        } else if (!result.ephemeralKeyInfo) {
+          result.ephemeralKeyInfo = {
+            type: 'ECDH',
+            name: probe.group,
+            size: 0,
+          };
+        }
+      } else if (!result.ephemeralKeyInfo && probe.peerTempKey) {
         result.ephemeralKeyInfo = {
-          type: 'KEM',
-          name: probe.group,
-          size: 0,
-        };
-      } else if (!result.ephemeralKeyInfo) {
-        // Classical group detected by openssl, Node.js had nothing
-        result.ephemeralKeyInfo = {
-          type: 'ECDH',
-          name: probe.group,
-          size: 0,
+          type: probe.peerTempKey.type,
+          name: probe.peerTempKey.name,
+          size: probe.peerTempKey.size,
         };
       }
-    } else if (!result.ephemeralKeyInfo && probe.peerTempKey) {
-      // No negotiated group line but we got Peer Temp Key info
-      result.ephemeralKeyInfo = {
-        type: probe.peerTempKey.type,
-        name: probe.peerTempKey.name,
-        size: probe.peerTempKey.size,
-      };
+    } catch {
+      // openssl probe failed — keep Node.js data as-is
     }
-  } catch {
-    // openssl probe failed — keep Node.js data as-is
   }
 
   return result;

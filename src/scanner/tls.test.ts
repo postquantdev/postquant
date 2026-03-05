@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import tls from 'node:tls';
-import { scanHost } from './tls.js';
+import { scanHost, _resetOpensslWarning } from './tls.js';
+import { findOpenssl3 } from './openssl.js';
 import { EventEmitter } from 'node:events';
 
 vi.mock('node:tls');
 vi.mock('./openssl.js', () => ({
   probeWithOpenssl: vi.fn().mockResolvedValue({ group: null, peerTempKey: null }),
+  findOpenssl3: vi.fn().mockResolvedValue(null),
 }));
 
 function createMockSocket() {
@@ -125,5 +127,71 @@ describe('scanHost input validation', () => {
 
   it('rejects invalid port at scanner boundary', async () => {
     await expect(scanHost('example.com', 0, 5000)).rejects.toThrow(/invalid port/i);
+  });
+});
+
+describe('scanHost OpenSSL warning', () => {
+  beforeEach(() => {
+    _resetOpensslWarning();
+    vi.mocked(findOpenssl3).mockResolvedValue(null);
+  });
+
+  it('prints stderr warning when OpenSSL 3.5+ is not found', async () => {
+    const mockSocket = createMockSocket();
+    vi.mocked(tls.connect).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      process.nextTick(() => cb());
+      return mockSocket;
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await scanHost('example.com', 443, 10000);
+
+    const calls = stderrSpy.mock.calls.map((c) => String(c[0]));
+    expect(calls.some((c) => c.includes('OpenSSL 3.5+ not found'))).toBe(true);
+    stderrSpy.mockRestore();
+  });
+
+  it('does not print warning when OpenSSL is available', async () => {
+    vi.mocked(findOpenssl3).mockResolvedValue('/usr/bin/openssl');
+    const mockSocket = createMockSocket();
+    vi.mocked(tls.connect).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      process.nextTick(() => cb());
+      return mockSocket;
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await scanHost('example.com', 443, 10000);
+
+    const calls = stderrSpy.mock.calls.map((c) => String(c[0]));
+    expect(calls.some((c) => c.includes('OpenSSL 3.5+ not found'))).toBe(false);
+    stderrSpy.mockRestore();
+  });
+});
+
+describe('scanHost OpenSSL warning deduplication', () => {
+  beforeEach(() => {
+    _resetOpensslWarning();
+    vi.mocked(findOpenssl3).mockResolvedValue(null);
+  });
+
+  it('only prints the warning once across multiple scanHost calls', async () => {
+    const mockSocket = createMockSocket();
+    vi.mocked(tls.connect).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      process.nextTick(() => cb());
+      return mockSocket;
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await scanHost('example.com', 443, 10000);
+    await scanHost('example.com', 443, 10000);
+
+    const warningCalls = stderrSpy.mock.calls
+      .map((c) => String(c[0]))
+      .filter((c) => c.includes('OpenSSL 3.5+ not found'));
+    expect(warningCalls).toHaveLength(1);
+    stderrSpy.mockRestore();
   });
 });
