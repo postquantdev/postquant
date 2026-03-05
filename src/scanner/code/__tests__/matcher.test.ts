@@ -266,4 +266,131 @@ describe('Matcher', () => {
       expect(findings).toHaveLength(0);
     });
   });
+
+  // --- C/C++ comment handling tests ---
+
+  describe('C comment handling', () => {
+    it('skips single-line comments in C', () => {
+      const findings = matchFileContent(
+        '// RSA_generate_key_ex(rsa, 2048, e, NULL)\n',
+        'c',
+        'test.c',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('skips block comments in C', () => {
+      const findings = matchFileContent(
+        '/* RSA_generate_key_ex(rsa, 2048, e, NULL) */\n',
+        'c',
+        'test.c',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('skips multi-line block comments in C', () => {
+      const findings = matchFileContent(
+        '/*\n * RSA_generate_key_ex(rsa, 2048, e, NULL)\n */\n',
+        'c',
+        'test.c',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('matches real C code (not in comments)', () => {
+      const findings = matchFileContent(
+        '#include <openssl/rsa.h>\nRSA_generate_key_ex(rsa, 2048, e, NULL);\n',
+        'c',
+        'test.c',
+      );
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      expect(findings[0].patternId).toBe('c-rsa-keygen');
+    });
+
+    it('skips C string literals', () => {
+      const findings = matchFileContent(
+        'const char *msg = "RSA_generate_key_ex is deprecated";\n',
+        'c',
+        'test.c',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('strips inline comments in C', () => {
+      const findings = matchFileContent(
+        'EVP_sha256(); // safe hash\n',
+        'c',
+        'test.c',
+      );
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      expect(findings[0].patternId).toBe('c-sha256');
+    });
+  });
+
+  describe('Rust comment handling', () => {
+    it('skips single-line comments in Rust', () => {
+      const findings = matchFileContent(
+        '// Rsa::generate(2048)\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('skips doc comments in Rust', () => {
+      const findings = matchFileContent(
+        '/// Rsa::generate(2048) creates a key\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('skips block comments in Rust', () => {
+      const findings = matchFileContent(
+        '/* Rsa::generate(2048) */\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('skips multi-line block comments in Rust', () => {
+      const findings = matchFileContent(
+        '/*\n * Rsa::generate(2048)\n */\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('matches real Rust code (not in comments)', () => {
+      const findings = matchFileContent(
+        'use openssl::rsa::Rsa;\nlet rsa = Rsa::generate(2048).unwrap();\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      expect(findings[0].patternId).toBe('rust-openssl-rsa');
+    });
+
+    it('skips Rust string literals', () => {
+      const findings = matchFileContent(
+        'let msg = "Rsa::generate is deprecated";\n',
+        'rust',
+        'test.rs',
+      );
+      expect(findings).toHaveLength(0);
+    });
+
+    it('strips inline comments in Rust', () => {
+      const findings = matchFileContent(
+        'use sha2::{Sha256, Digest};\nSha256::digest(b"data"); // compute hash\n',
+        'rust',
+        'test.rs',
+      );
+      const sha = findings.filter((f) => f.patternId === 'rust-sha-crate');
+      expect(sha.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

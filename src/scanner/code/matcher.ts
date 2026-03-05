@@ -81,7 +81,7 @@ export function matchFileContent(
 
     // Detect start of block comments
     if (
-      (language === 'javascript' || language === 'go' || language === 'java') &&
+      (language === 'javascript' || language === 'go' || language === 'java' || language === 'c' || language === 'rust') &&
       trimmed.startsWith('/*')
     ) {
       if (!trimmed.includes('*/')) {
@@ -110,13 +110,13 @@ export function matchFileContent(
     // Skip single-line comments
     if (language === 'python' && trimmed.startsWith('#')) continue;
     if (
-      (language === 'javascript' || language === 'go' || language === 'java') &&
+      (language === 'javascript' || language === 'go' || language === 'java' || language === 'c' || language === 'rust') &&
       trimmed.startsWith('//')
     ) continue;
 
     // Skip Java block comment single-line: /** ... */
     if (
-      (language === 'javascript' || language === 'go' || language === 'java') &&
+      (language === 'javascript' || language === 'go' || language === 'java' || language === 'c' || language === 'rust') &&
       trimmed.startsWith('/*') &&
       trimmed.includes('*/')
     ) continue;
@@ -187,7 +187,7 @@ function stripInlineComment(line: string, language: Language): string {
     // Simple heuristic: find # not inside quotes
     return stripAfterChar(line, '#');
   }
-  if (language === 'javascript' || language === 'go' || language === 'java') {
+  if (language === 'javascript' || language === 'go' || language === 'java' || language === 'c' || language === 'rust') {
     return stripAfterStr(line, '//');
   }
   return line;
@@ -241,6 +241,14 @@ function isPureStringLiteral(line: string, language: Language): boolean {
   if (language === 'go') {
     // Lines like: msg := "rsa.GenerateKey is vulnerable"
     if (/^\w+\s*:?=\s*".*"\s*$/.test(line)) return true;
+  }
+  if (language === 'c') {
+    // Lines like: const char *msg = "RSA_generate_key_ex is deprecated";
+    if (/^(?:const\s+)?(?:char|unsigned\s+char)\s*\*?\s*\w+\s*=\s*".*"\s*;\s*$/.test(line)) return true;
+  }
+  if (language === 'rust') {
+    // Lines like: let msg = "Rsa::generate is deprecated";
+    if (/^let\s+(?:mut\s+)?\w+\s*(?::\s*&?str\s*)?=\s*".*"\s*;\s*$/.test(line)) return true;
   }
   return false;
 }
