@@ -267,6 +267,102 @@ describe('Matcher', () => {
     });
   });
 
+  // --- C fixture tests ---
+
+  describe('C vulnerable fixture', () => {
+    it('finds critical findings in vulnerable.c', async () => {
+      const { findings } = await matchFile(fixture('c', 'vulnerable.c'), 'c');
+      const critical = findings.filter((f) => f.risk === 'critical');
+      expect(critical.length).toBeGreaterThanOrEqual(6);
+    });
+
+    it('detects RSA key generation', async () => {
+      const { findings } = await matchFile(fixture('c', 'vulnerable.c'), 'c');
+      const rsa = findings.filter((f) => f.patternId === 'c-rsa-keygen');
+      expect(rsa.length).toBeGreaterThanOrEqual(1);
+      expect(rsa[0].risk).toBe('critical');
+      expect(rsa[0].language).toBe('c');
+    });
+
+    it('detects MD5 usage', async () => {
+      const { findings } = await matchFile(fixture('c', 'vulnerable.c'), 'c');
+      const md5 = findings.filter((f) => f.patternId === 'c-md5');
+      expect(md5.length).toBeGreaterThanOrEqual(1);
+      expect(md5[0].risk).toBe('critical');
+    });
+  });
+
+  describe('C safe fixture', () => {
+    it('finds only safe findings in safe.c', async () => {
+      const { findings } = await matchFile(fixture('c', 'safe.c'), 'c');
+      const nonSafe = findings.filter((f) => f.risk !== 'safe');
+      expect(nonSafe.length).toBe(0);
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('C no-crypto fixture', () => {
+    it('returns empty findings for code with no crypto', async () => {
+      const { findings } = await matchFile(fixture('c', 'no-crypto.c'), 'c');
+      expect(findings).toHaveLength(0);
+    });
+  });
+
+  describe('C comments fixture', () => {
+    it('does not match crypto calls inside comments', async () => {
+      const { findings } = await matchFile(fixture('c', 'comments.c'), 'c');
+      expect(findings).toHaveLength(0);
+    });
+  });
+
+  // --- Rust fixture tests ---
+
+  describe('Rust vulnerable fixture', () => {
+    it('finds critical findings in vulnerable.rs', async () => {
+      const { findings } = await matchFile(fixture('rust', 'vulnerable.rs'), 'rust');
+      const critical = findings.filter((f) => f.risk === 'critical');
+      expect(critical.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('detects RSA key generation', async () => {
+      const { findings } = await matchFile(fixture('rust', 'vulnerable.rs'), 'rust');
+      const rsa = findings.filter((f) => f.patternId === 'rust-rsa-crate');
+      expect(rsa.length).toBeGreaterThanOrEqual(1);
+      expect(rsa[0].risk).toBe('critical');
+      expect(rsa[0].language).toBe('rust');
+    });
+
+    it('detects MD5 usage', async () => {
+      const { findings } = await matchFile(fixture('rust', 'vulnerable.rs'), 'rust');
+      const md5 = findings.filter((f) => f.patternId === 'rust-md5-crate');
+      expect(md5.length).toBeGreaterThanOrEqual(1);
+      expect(md5[0].risk).toBe('critical');
+    });
+  });
+
+  describe('Rust safe fixture', () => {
+    it('finds only safe findings in safe.rs', async () => {
+      const { findings } = await matchFile(fixture('rust', 'safe.rs'), 'rust');
+      const nonSafe = findings.filter((f) => f.risk !== 'safe');
+      expect(nonSafe.length).toBe(0);
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Rust no-crypto fixture', () => {
+    it('returns empty findings for code with no crypto', async () => {
+      const { findings } = await matchFile(fixture('rust', 'no-crypto.rs'), 'rust');
+      expect(findings).toHaveLength(0);
+    });
+  });
+
+  describe('Rust comments fixture', () => {
+    it('does not match crypto calls inside comments', async () => {
+      const { findings } = await matchFile(fixture('rust', 'comments.rs'), 'rust');
+      expect(findings).toHaveLength(0);
+    });
+  });
+
   // --- C/C++ comment handling tests ---
 
   describe('C comment handling', () => {
