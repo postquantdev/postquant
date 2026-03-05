@@ -60,6 +60,7 @@ function connectTls(
       {
         host,
         port,
+        servername: host,
         rejectUnauthorized: false,
         timeout,
       },

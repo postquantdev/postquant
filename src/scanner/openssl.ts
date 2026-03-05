@@ -66,6 +66,8 @@ export async function probeWithOpenssl(
       's_client',
       '-connect',
       `${host}:${port}`,
+      '-servername',
+      host,
     ]);
   } catch {
     return nullResult;
