@@ -123,7 +123,7 @@ export interface CryptoPattern {
   /** Algorithm name, e.g., 'RSA-2048', 'ECDSA', 'AES-128' */
   algorithm: string;
   risk: RiskLevel;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'verified' | 'high' | 'medium' | 'low';
 
   /** Import/require/use statement patterns */
   importPatterns?: RegExp[];
@@ -169,7 +169,22 @@ export interface CodeFinding {
   /** Migration recommendation */
   migration?: string;
   /** Match confidence */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'verified' | 'high' | 'medium' | 'low';
+  /** AST scope information, if available */
+  scopeInfo?: ScopeInfo;
+  /** Whether this finding was enriched/produced by AST analysis */
+  astEnriched?: boolean;
+}
+
+export interface ScopeInfo {
+  /** Enclosing function name, if any */
+  functionName?: string;
+  /** Enclosing class name, if any */
+  className?: string;
+  /** Is this inside a test function/class? Structural detection */
+  isTestCode: boolean;
+  /** Is this inside a conditional/fallback block? */
+  isConditionalPath: boolean;
 }
 
 export interface CodeScanResult {
@@ -254,7 +269,7 @@ export type UsageContext =
 export type AdjustedRisk = 'critical' | 'high' | 'medium' | 'low' | 'informational';
 
 export interface ContextSignal {
-  type: 'file-path' | 'function-name' | 'variable-name' | 'nearby-code' | 'import-context' | 'api-pattern';
+  type: 'file-path' | 'function-name' | 'variable-name' | 'nearby-code' | 'import-context' | 'api-pattern' | 'ast-scope';
   value: string;
   influence: 'increases-risk' | 'decreases-risk' | 'neutral';
 }
