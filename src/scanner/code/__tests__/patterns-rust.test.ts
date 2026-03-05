@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('Rust patterns', () => {
-  it('exports 11 patterns', () => {
-    expect(rustPatterns).toHaveLength(11);
+  it('exports 13 patterns', () => {
+    expect(rustPatterns).toHaveLength(13);
   });
 
   describe.each(rustPatterns)('$id', (pattern) => {
@@ -148,7 +148,47 @@ describe('Rust patterns', () => {
     expect(byId('rust-aes-crate').risk).toBe('safe');
   });
 
-  it('all patterns have medium confidence', () => {
-    rustPatterns.forEach((p) => expect(p.confidence).toBe('medium'));
+  it('all non-PQC patterns have medium confidence', () => {
+    rustPatterns
+      .filter((p) => p.category !== 'pqc-algorithm')
+      .forEach((p) => expect(p.confidence).toBe('medium'));
+  });
+
+  describe('PQC patterns', () => {
+    it('rust-pqc-pqcrypto matches pqcrypto crate calls', () => {
+      const p = byId('rust-pqc-pqcrypto');
+      expect(callMatches(p, 'let (pk, sk) = pqcrypto::kem::kyber768::keypair();')).toBe(true);
+      expect(callMatches(p, 'let (ct, ss) = pqcrypto::kem::kyber768::encapsulate(&pk);')).toBe(true);
+      expect(callMatches(p, 'let sig = pqcrypto::sign::dilithium3::sign(msg, &sk);')).toBe(true);
+    });
+
+    it('rust-pqc-pqcrypto import matches', () => {
+      const p = byId('rust-pqc-pqcrypto');
+      expect(importMatches(p, 'use pqcrypto::kem::kyber768;')).toBe(true);
+      expect(importMatches(p, 'use pqcrypto_kyber::kyber768;')).toBe(true);
+    });
+
+    it('rust-pqc-oqs matches liboqs bindings', () => {
+      const p = byId('rust-pqc-oqs');
+      expect(callMatches(p, 'let kem = oqs::kem::Kem::new(oqs::kem::Algorithm::MlKem768)?;')).toBe(true);
+      expect(callMatches(p, 'let sig = oqs::sig::Sig::new(oqs::sig::Algorithm::MlDsa65)?;')).toBe(true);
+      expect(callMatches(p, 'let kem = Kem::new(Algorithm::MlKem768)?;')).toBe(true);
+      expect(callMatches(p, 'let sig = Sig::new(Algorithm::MlDsa65)?;')).toBe(true);
+    });
+
+    it('rust-pqc-oqs import matches', () => {
+      const p = byId('rust-pqc-oqs');
+      expect(importMatches(p, 'use oqs::kem;')).toBe(true);
+      expect(importMatches(p, 'extern crate oqs;')).toBe(true);
+    });
+
+    it('all PQC patterns are safe with high confidence', () => {
+      const pqc = rustPatterns.filter((p) => p.category === 'pqc-algorithm');
+      expect(pqc).toHaveLength(2);
+      pqc.forEach((p) => {
+        expect(p.risk).toBe('safe');
+        expect(p.confidence).toBe('high');
+      });
+    });
   });
 });

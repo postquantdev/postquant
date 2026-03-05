@@ -210,4 +210,38 @@ export const rustPatterns: CryptoPattern[] = [
     nistRef: 'FIPS 203/204',
     cweId: 'CWE-327',
   },
+  // === PQC ===
+  {
+    id: 'rust-pqc-pqcrypto',
+    language: 'rust',
+    category: 'pqc-algorithm',
+    algorithm: 'PQC (pqcrypto)',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [/use\s+pqcrypto::/, /use\s+pqcrypto_\w+/],
+    callPatterns: [
+      /pqcrypto::\w+::\w+::keypair\s*\(/,
+      /pqcrypto::\w+::\w+::encapsulate\s*\(/,
+      /pqcrypto::\w+::\w+::sign\s*\(/,
+    ],
+    description: 'pqcrypto Rust crate for PQC algorithms',
+    migration: 'Already using PQC — verify algorithm is NIST-approved (ML-KEM, ML-DSA, SLH-DSA)',
+  },
+  {
+    id: 'rust-pqc-oqs',
+    language: 'rust',
+    category: 'pqc-algorithm',
+    algorithm: 'PQC (oqs)',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [/use\s+oqs::/, /extern\s+crate\s+oqs/],
+    callPatterns: [
+      /oqs::kem::Kem/,
+      /oqs::sig::Sig/,
+      /Kem::new\s*\(/,
+      /Sig::new\s*\(/,
+    ],
+    description: 'liboqs Rust bindings for PQC algorithms',
+    migration: 'Already using PQC — verify algorithm is NIST-approved (ML-KEM, ML-DSA, SLH-DSA)',
+  },
 ];
