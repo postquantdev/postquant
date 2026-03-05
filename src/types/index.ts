@@ -92,7 +92,7 @@ export interface ScanOptions {
 
 // === Code Scanner Types ===
 
-export type Language = 'python' | 'javascript' | 'go' | 'java';
+export type Language = 'python' | 'javascript' | 'go' | 'java' | 'c' | 'rust';
 
 export type CryptoCategory =
   | 'asymmetric-encryption'
