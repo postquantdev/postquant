@@ -1,12 +1,20 @@
 import tls from 'node:tls';
 import type { TlsScanResult } from '../types/index.js';
 import { probeWithOpenssl } from './openssl.js';
+import { validateHostname, validatePort } from '../utils/validate.js';
 
 export async function scanHost(
   host: string,
   port: number,
   timeout: number,
 ): Promise<TlsScanResult> {
+  if (!validateHostname(host)) {
+    throw new Error(`Invalid hostname: "${host}" contains prohibited characters`);
+  }
+  if (!validatePort(port)) {
+    throw new Error(`Invalid port: ${port} must be an integer between 1 and 65535`);
+  }
+
   const result = await connectTls(host, port, timeout);
 
   // Enrich with openssl probe for PQC detection

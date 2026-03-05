@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseOpensslOutput } from './openssl.js';
+import { parseOpensslOutput, probeWithOpenssl } from './openssl.js';
 
 describe('parseOpensslOutput', () => {
   it('parses X25519MLKEM768 negotiated group', () => {
@@ -79,5 +79,19 @@ New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
     const output = 'Negotiated TLS1.3 group: MLKEM768';
     const result = parseOpensslOutput(output);
     expect(result.group).toBe('MLKEM768');
+  });
+});
+
+describe('probeWithOpenssl input validation', () => {
+  it('returns null result for hostname with shell metacharacters', async () => {
+    const result = await probeWithOpenssl(';whoami', 443);
+    expect(result.group).toBeNull();
+    expect(result.peerTempKey).toBeNull();
+  });
+
+  it('returns null result for invalid port', async () => {
+    const result = await probeWithOpenssl('example.com', 0);
+    expect(result.group).toBeNull();
+    expect(result.peerTempKey).toBeNull();
   });
 });

@@ -117,3 +117,13 @@ describe('scanHost', () => {
     );
   });
 });
+
+describe('scanHost input validation', () => {
+  it('rejects hostname with shell metacharacters', async () => {
+    await expect(scanHost(';rm -rf /', 443, 5000)).rejects.toThrow(/invalid hostname/i);
+  });
+
+  it('rejects invalid port at scanner boundary', async () => {
+    await expect(scanHost('example.com', 0, 5000)).rejects.toThrow(/invalid port/i);
+  });
+});

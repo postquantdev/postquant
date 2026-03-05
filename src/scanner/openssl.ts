@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { access, constants } from 'node:fs/promises';
+import { validateHostname, validatePort } from '../utils/validate.js';
 
 export interface OpensslProbeResult {
   /** Negotiated TLS 1.3 group (e.g., 'X25519MLKEM768') */
@@ -48,6 +49,10 @@ export async function probeWithOpenssl(
   port: number,
 ): Promise<OpensslProbeResult> {
   const nullResult: OpensslProbeResult = { group: null, peerTempKey: null };
+
+  if (!validateHostname(host) || !validatePort(port)) {
+    return nullResult;
+  }
 
   let opensslBin: string | null;
   try {
