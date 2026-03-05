@@ -25,6 +25,7 @@ function makeCodeGradedResult(overrides: Partial<CodeGradedResult> = {}): CodeGr
     grade: 'C+',
     baseGrade: 'C',
     modifier: '+',
+    pqcDetected: false,
     findings: [
       makeFinding(),
       makeFinding({
@@ -134,6 +135,16 @@ describe('formatCodeJson', () => {
     const parsed = JSON.parse(formatCodeJson(makeCodeGradedResult()));
     expect(parsed.migrationNotes).toContain('Replace with ML-DSA (FIPS 204)');
     expect(parsed.migrationNotes).toContain('Upgrade to AES-256');
+  });
+
+  it('includes pqcDetected in JSON output', () => {
+    const parsed = JSON.parse(formatCodeJson(makeCodeGradedResult({ pqcDetected: false })));
+    expect(parsed.pqcDetected).toBe(false);
+  });
+
+  it('includes pqcDetected true when set', () => {
+    const parsed = JSON.parse(formatCodeJson(makeCodeGradedResult({ pqcDetected: true })));
+    expect(parsed.pqcDetected).toBe(true);
   });
 
   it('formats with 2-space indentation', () => {

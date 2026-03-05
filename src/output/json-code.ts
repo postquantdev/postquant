@@ -26,6 +26,7 @@ export function formatCodeJson(result: CodeGradedResult): string {
     grade: result.grade,
     baseGrade: result.baseGrade,
     modifier: result.modifier,
+    pqcDetected: result.pqcDetected,
     findings: result.findings,
     summary: result.summary,
     migrationNotes: result.migrationNotes,
