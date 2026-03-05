@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name('postquant')
   .description('Scan TLS endpoints and source code for quantum-vulnerable cryptography')
-  .version('0.6.0');
+  .version('0.7.0');
 
 program
   .command('scan')

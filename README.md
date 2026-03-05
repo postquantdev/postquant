@@ -7,16 +7,21 @@
 
 PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, Java, C/C++, and Rust.
 
-## What's New in v0.6.0
+## What's New in v0.7.0
 
-PostQuant now covers 6 languages with 97 detection patterns (81 classical + 16 PQC) and reports whether your code or TLS connections use post-quantum cryptography.
+PostQuant now includes **AST analysis** for Python and JavaScript/TypeScript, running in parallel with regex pattern matching for higher-confidence detection and new capabilities that regex alone cannot achieve.
 
-- **PQC readiness flag** — Every scan now includes a `pqcDetected` indicator, independent of the letter grade. See at a glance whether post-quantum algorithms are deployed.
-- **PQC detection patterns** — 16 new patterns across all 6 languages detect libraries like liboqs, pqcrypto, circl, and Bouncy Castle PQC.
-- **C/C++ and Rust support** — Full pattern coverage for OpenSSL, libsodium, wolfSSL, mbedTLS, ring, and RustCrypto.
-- **Context-aware risk assessment** — MD5 in a UUID library scores A. MD5 in a password hasher scores D+. Same algorithm, different context, different risk.
-- **Hybrid PQC detection** — X25519MLKEM768 key exchange detected via OpenSSL probing.
-- **Security hardening** — Two-layer input validation, OpenSSL version warnings.
+- **Tree-sitter AST analysis** — Parses Python and JS/TS source code into syntax trees for structural pattern matching. Findings from AST get `verified` confidence, the highest level.
+- **Alias-aware detection** — `from cryptography import rsa as r; r.generate_private_key(...)` is now caught. Regex misses aliased imports; AST resolves them.
+- **Multiline pattern matching** — WebCrypto `subtle.generateKey()` calls spanning multiple lines are now detected via AST.
+- **Scope-aware risk signals** — Crypto calls inside test functions, pytest fixtures, or `describe`/`it` blocks are flagged as test code, reducing false-positive noise.
+- **Zero-regression merge** — Both engines run independently. AST upgrades overlapping findings; regex-only findings pass through unchanged. Use `--no-ast` to disable.
+- **18 AST patterns** — 11 Python + 7 JavaScript patterns covering RSA, ECDSA, DH, MD5, SHA-1, and WebCrypto.
+
+### Previous: v0.6.0
+
+- PQC readiness flag and 16 PQC detection patterns across 6 languages.
+- C/C++ and Rust support. Context-aware risk assessment. Hybrid PQC detection.
 
 ## TLS Scan Results
 
@@ -46,7 +51,7 @@ We scanned popular open-source frameworks with PostQuant v0.3.0:
 
 > Scanned with PostQuant v0.3.0 on March 3, 2026. Run `npx postquant analyze <path>` to scan your own projects.
 
-> **Note:** Detection uses pattern matching, not AST analysis. Results may miss obfuscated or indirect crypto usage.
+> **Note:** v0.7.0 adds AST analysis for Python and JS/TS. Other languages use regex pattern matching only. Results may miss obfuscated or indirect crypto usage in non-AST languages.
 
 ## Package Scan Results
 
@@ -137,7 +142,7 @@ Most sites today score C+ or C. That's expected — almost nobody has deployed p
 
 ### Code Scanner
 
-Scan source code for quantum-vulnerable cryptographic patterns. 97 detection patterns across 6 languages (Python, JavaScript/TypeScript, Go, Java, C/C++, Rust) with context-aware risk assessment.
+Scan source code for quantum-vulnerable cryptographic patterns. 97 detection patterns across 6 languages (Python, JavaScript/TypeScript, Go, Java, C/C++, Rust) with context-aware risk assessment and AST analysis for Python and JS/TS.
 
 ```bash
 # Scan your project
@@ -148,6 +153,9 @@ npx postquant analyze . --show-all
 
 # Skip context analysis, raw pattern matching only
 npx postquant analyze . --no-context
+
+# Disable AST analysis (regex-only)
+npx postquant analyze . --no-ast
 
 # SARIF output for GitHub Code Scanning
 npx postquant analyze ./src --format sarif
@@ -234,6 +242,9 @@ postquant analyze ./src --show-all
 # Skip context analysis, use raw pattern matching only
 postquant analyze ./src --no-context
 
+# Disable AST analysis (regex-only, faster)
+postquant analyze ./src --no-ast
+
 # Show all findings including safe ones (legacy)
 postquant analyze ./src --verbose
 ```
@@ -298,6 +309,7 @@ npm run dev -- analyze ./src         # Code scan from source
 | Security hardening + input validation | March 2026 | :white_check_mark: v0.4.2 |
 | C/C++ and Rust support | March 2026 | :white_check_mark: v0.5.0 |
 | PQC detection patterns + readiness flag | March 2026 | :white_check_mark: v0.6.0 |
+| AST analysis for Python and JS/TS | March 2026 | :white_check_mark: v0.7.0 |
 | Migration playbook engine | April 2026 | Planned |
 | Web dashboard + Enterprise tier | May 2026 | Planned |
 | GitHub Actions Marketplace | June 2026 | Planned |
@@ -306,14 +318,14 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ## Limitations
 
-PostQuant's code scanner uses regex-based pattern matching. This is fast and works well for common crypto usage, but has known blind spots:
+PostQuant uses regex pattern matching for all 6 languages and tree-sitter AST analysis for Python and JavaScript/TypeScript. Known blind spots:
 
-- **No AST parsing** — Obfuscated, aliased, or dynamically constructed crypto calls may not be detected.
+- **AST coverage is Python and JS/TS only** — Go, Java, C/C++, and Rust use regex-only detection. Aliased imports and multiline calls may be missed in those languages.
 - **No cross-function data flow** — If a key size is defined in one function and used in another, the scanner won't correlate them.
 - **No runtime analysis** — Crypto operations triggered by configuration files, environment variables, or runtime logic are not visible.
 - **Key size extraction is best-effort** — Some patterns detect the algorithm but not the key size, especially for indirect parameter passing.
 
-Context-aware risk assessment (v0.3.0+) mitigates some false positives but cannot eliminate them entirely. When in doubt, PostQuant errs on the side of flagging (false positives over false negatives).
+Context-aware risk assessment (v0.3.0+) and AST analysis (v0.7.0+) reduce false positives but cannot eliminate them entirely. When in doubt, PostQuant errs on the side of flagging (false positives over false negatives).
 
 For the TLS scanner, detection accuracy depends on the server's TLS configuration and the local OpenSSL version. Hybrid PQC detection requires OpenSSL 3.5+.
 
