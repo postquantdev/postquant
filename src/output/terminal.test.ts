@@ -50,6 +50,7 @@ function makeGradedResult(overrides: Partial<GradedResult> = {}): GradedResult {
       'ML-DSA (FIPS 204)',
       'ML-KEM (FIPS 203) hybrid key exchange',
     ],
+    pqcDetected: false,
     summary: { critical: 2, moderate: 0, safe: 3, total: 5 },
     ...overrides,
   };
@@ -106,6 +107,18 @@ describe('formatTerminal', () => {
     const output = stripAnsi(formatTerminal(makeGradedResult()));
     expect(output).toContain('ML-DSA');
     expect(output).toContain('ML-KEM');
+  });
+
+  it('shows PQC Readiness: Detected when pqcDetected is true', () => {
+    const output = stripAnsi(formatTerminal(makeGradedResult({ pqcDetected: true })));
+    expect(output).toContain('PQC Readiness');
+    expect(output).toContain('Detected');
+  });
+
+  it('shows PQC Readiness: Not detected when pqcDetected is false', () => {
+    const output = stripAnsi(formatTerminal(makeGradedResult({ pqcDetected: false })));
+    expect(output).toContain('PQC Readiness');
+    expect(output).toContain('Not detected');
   });
 
   it('shows A+ grade correctly', () => {

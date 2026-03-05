@@ -60,6 +60,12 @@ export function formatTerminal(result: GradedResult): string {
   lines.push(`  Overall Grade:  ${gradeColor(result.grade)}`);
   lines.push('');
 
+  const pqcLabel = result.pqcDetected
+    ? chalk.green('Detected')
+    : chalk.dim('Not detected');
+  lines.push(`  PQC Readiness:  ${pqcLabel}`);
+  lines.push('');
+
   const certFinding = result.findings.find((f) => f.component === 'certificate');
   if (certFinding) {
     lines.push('  Certificate');
