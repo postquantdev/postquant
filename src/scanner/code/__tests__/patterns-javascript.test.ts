@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('JavaScript patterns', () => {
-  it('exports 14 patterns', () => {
-    expect(javascriptPatterns).toHaveLength(14);
+  it('exports 17 patterns', () => {
+    expect(javascriptPatterns).toHaveLength(17);
   });
 
   describe.each(javascriptPatterns)('$id', (pattern) => {
@@ -104,5 +104,74 @@ describe('JavaScript patterns', () => {
         p.category === 'key-exchange',
     );
     critical.forEach((p) => expect(p.risk).toBe('critical'));
+  });
+
+  // --- PQC patterns ---
+  describe('PQC patterns', () => {
+    it('js-pqc-liboqs matches import via require', () => {
+      expect(importMatches(byId('js-pqc-liboqs'), "const oqs = require('liboqs')")).toBe(true);
+    });
+
+    it('js-pqc-liboqs matches import via from', () => {
+      expect(importMatches(byId('js-pqc-liboqs'), "import { KeyEncapsulation } from 'liboqs'")).toBe(true);
+    });
+
+    it('js-pqc-liboqs matches KeyEncapsulation call', () => {
+      expect(callMatches(byId('js-pqc-liboqs'), "new KeyEncapsulation('Kyber768')")).toBe(true);
+    });
+
+    it('js-pqc-liboqs matches Signature call', () => {
+      expect(callMatches(byId('js-pqc-liboqs'), "new Signature('Dilithium3')")).toBe(true);
+    });
+
+    it('js-pqc-liboqs is safe', () => {
+      expect(byId('js-pqc-liboqs').risk).toBe('safe');
+    });
+
+    it('js-pqc-crystals-kyber matches crystals-kyber require', () => {
+      expect(importMatches(byId('js-pqc-crystals-kyber'), "const kyber = require('crystals-kyber')")).toBe(true);
+    });
+
+    it('js-pqc-crystals-kyber matches ml-kem import', () => {
+      expect(importMatches(byId('js-pqc-crystals-kyber'), "import { MlKem768 } from 'ml-kem'")).toBe(true);
+    });
+
+    it('js-pqc-crystals-kyber matches MlKem768 call', () => {
+      expect(callMatches(byId('js-pqc-crystals-kyber'), 'const kem = MlKem768(params)')).toBe(true);
+    });
+
+    it('js-pqc-crystals-kyber matches Kyber768 call', () => {
+      expect(callMatches(byId('js-pqc-crystals-kyber'), 'const kem = Kyber768.encapsulate(pk)')).toBe(true);
+    });
+
+    it('js-pqc-crystals-kyber is safe', () => {
+      expect(byId('js-pqc-crystals-kyber').risk).toBe('safe');
+    });
+
+    it('js-pqc-dilithium matches crystals-dilithium require', () => {
+      expect(importMatches(byId('js-pqc-dilithium'), "const dil = require('crystals-dilithium')")).toBe(true);
+    });
+
+    it('js-pqc-dilithium matches ml-dsa import', () => {
+      expect(importMatches(byId('js-pqc-dilithium'), "import { MlDsa65 } from 'ml-dsa'")).toBe(true);
+    });
+
+    it('js-pqc-dilithium matches MlDsa65 call', () => {
+      expect(callMatches(byId('js-pqc-dilithium'), 'const sig = MlDsa65(params)')).toBe(true);
+    });
+
+    it('js-pqc-dilithium matches Dilithium3 call', () => {
+      expect(callMatches(byId('js-pqc-dilithium'), 'const sig = Dilithium3.sign(msg, sk)')).toBe(true);
+    });
+
+    it('js-pqc-dilithium is safe', () => {
+      expect(byId('js-pqc-dilithium').risk).toBe('safe');
+    });
+
+    it('all PQC patterns are categorized as pqc-algorithm', () => {
+      const pqc = javascriptPatterns.filter((p) => p.id.includes('-pqc-'));
+      expect(pqc).toHaveLength(3);
+      pqc.forEach((p) => expect(p.category).toBe('pqc-algorithm'));
+    });
   });
 });
