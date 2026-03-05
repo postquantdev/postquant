@@ -253,4 +253,64 @@ export const pythonPatterns: CryptoPattern[] = [
     description: "AES-128 provides reduced security against quantum attacks (Grover's algorithm)",
     migration: 'Use AES-256 for quantum-resistant symmetric encryption',
   },
+
+  // --- PQC patterns ---
+  {
+    id: 'python-pqc-oqs-kem',
+    language: 'python',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-KEM',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /import\s+oqs/,
+      /from\s+oqs\s+import/,
+    ],
+    callPatterns: [
+      /oqs\.KeyEncapsulation\s*\(/,
+      /KeyEncapsulation\s*\(/,
+    ],
+    description: 'liboqs ML-KEM (FIPS 203) key encapsulation',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+    nistRef: 'FIPS 203',
+  },
+  {
+    id: 'python-pqc-oqs-sig',
+    language: 'python',
+    category: 'pqc-algorithm',
+    algorithm: 'ML-DSA',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /import\s+oqs/,
+      /from\s+oqs\s+import/,
+    ],
+    callPatterns: [
+      /oqs\.Signature\s*\(/,
+      /Signature\s*\(\s*["'](?:ML-DSA|Dilithium)/,
+    ],
+    description: 'liboqs ML-DSA (FIPS 204) digital signature',
+    migration: 'Already using PQC — verify parameter choices match NIST recommendations',
+    nistRef: 'FIPS 204',
+  },
+  {
+    id: 'python-pqc-pqcrypto',
+    language: 'python',
+    category: 'pqc-algorithm',
+    algorithm: 'PQC (pqcrypto)',
+    risk: 'safe',
+    confidence: 'high',
+    importPatterns: [
+      /from\s+pqcrypto\.\w+\.\w+\s+import/,
+      /import\s+pqcrypto/,
+    ],
+    callPatterns: [
+      /pqcrypto\.\w+\.\w+\./,
+      /generate_keypair\s*\(/,
+      /encrypt\s*\(/,
+      /sign\s*\(/,
+    ],
+    description: 'pqcrypto Python bindings for PQC algorithms',
+    migration: 'Already using PQC — verify algorithm is NIST-approved (ML-KEM, ML-DSA, SLH-DSA)',
+  },
 ];

@@ -15,8 +15,8 @@ const importMatches = (p: CryptoPattern, s: string): boolean =>
   (p.importPatterns ?? []).some((r) => r.test(s));
 
 describe('Python patterns', () => {
-  it('exports 13 patterns', () => {
-    expect(pythonPatterns).toHaveLength(13);
+  it('exports 16 patterns', () => {
+    expect(pythonPatterns).toHaveLength(16);
   });
 
   describe.each(pythonPatterns)('$id', (pattern) => {
@@ -110,5 +110,38 @@ describe('Python patterns', () => {
 
   it('sha256 is safe', () => {
     expect(byId('python-sha256').risk).toBe('safe');
+  });
+
+  // --- PQC patterns ---
+  describe('PQC patterns', () => {
+    it('has PQC patterns', () => {
+      const pqc = pythonPatterns.filter((p) => p.category === 'pqc-algorithm');
+      expect(pqc.length).toBeGreaterThan(0);
+    });
+
+    it('oqs KeyEncapsulation call matches', () => {
+      const p = byId('python-pqc-oqs-kem');
+      expect(callMatches(p, 'kem = oqs.KeyEncapsulation("ML-KEM-768")')).toBe(true);
+      expect(callMatches(p, 'kem = KeyEncapsulation("ML-KEM-768")')).toBe(true);
+    });
+
+    it('oqs Signature call matches', () => {
+      const p = byId('python-pqc-oqs-sig');
+      expect(callMatches(p, 'sig = oqs.Signature("ML-DSA-65")')).toBe(true);
+      expect(callMatches(p, 'sig = Signature("ML-DSA-65")')).toBe(true);
+      expect(callMatches(p, 'sig = Signature("Dilithium3")')).toBe(true);
+    });
+
+    it('pqcrypto import matches', () => {
+      const p = byId('python-pqc-pqcrypto');
+      expect(importMatches(p, 'from pqcrypto.kem.kyber512 import generate_keypair')).toBe(true);
+      expect(importMatches(p, 'import pqcrypto')).toBe(true);
+    });
+
+    it('pqcrypto call matches', () => {
+      const p = byId('python-pqc-pqcrypto');
+      expect(callMatches(p, 'pqcrypto.kem.kyber512.generate_keypair()')).toBe(true);
+      expect(callMatches(p, 'pk, sk = generate_keypair()')).toBe(true);
+    });
   });
 });
