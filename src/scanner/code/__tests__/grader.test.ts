@@ -289,6 +289,29 @@ describe('gradeCodeScan', () => {
     expect(result.modifier).toBe('+');
   });
 
+  it('sets pqcDetected true when pqc-algorithm findings present', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeFinding({ category: 'pqc-algorithm', risk: 'safe', algorithm: 'ML-KEM-768' }),
+    ]));
+    expect(result.pqcDetected).toBe(true);
+  });
+
+  it('sets pqcDetected false when no pqc-algorithm findings', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeFinding({ risk: 'critical', algorithm: 'RSA-2048' }),
+    ]));
+    expect(result.pqcDetected).toBe(false);
+  });
+
+  it('sets pqcDetected true even with critical findings present', () => {
+    const result = gradeCodeScan(makeScanResult([
+      makeFinding({ risk: 'critical', algorithm: 'RSA-2048' }),
+      makeFinding({ category: 'pqc-algorithm', risk: 'safe', algorithm: 'ML-KEM-768', file: 'src/pqc.py' }),
+    ]));
+    expect(result.pqcDetected).toBe(true);
+    expect(result.baseGrade).toBe('C');
+  });
+
   it('assigns - modifier in B band with 2+ moderate', () => {
     const result = gradeCodeScan(makeScanResult([
       makeFinding({ risk: 'moderate', category: 'weak-symmetric', algorithm: 'AES-128' }),

@@ -205,6 +205,8 @@ export interface CodeGradedResult {
   baseGrade: BaseGrade;
   /** Grade modifier */
   modifier: GradeModifier;
+  /** Whether any PQC algorithms were detected */
+  pqcDetected: boolean;
   /** All findings */
   findings: CodeFinding[];
   /** Migration notes (unique) */

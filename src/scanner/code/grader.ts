@@ -113,6 +113,8 @@ export function gradeCodeScan(scan: CodeScanResult): CodeGradedResult {
 
   const displayGrade = (baseGrade + modifier) as Grade;
 
+  const pqcDetected = findings.some((f) => f.category === 'pqc-algorithm');
+
   // Collect unique migration notes
   const migrationSet = new Set<string>();
   for (const f of findings) {
@@ -127,6 +129,7 @@ export function gradeCodeScan(scan: CodeScanResult): CodeGradedResult {
     grade: displayGrade,
     baseGrade,
     modifier,
+    pqcDetected,
     findings,
     migrationNotes: [...migrationSet],
     summary: {
