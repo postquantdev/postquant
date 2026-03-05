@@ -215,6 +215,13 @@ const IMPORT_LINE_PATTERNS: Record<Language, RegExp[]> = {
   java: [
     /^\s*import\s+([\w.]+)/,
   ],
+  c: [
+    /^\s*#include\s+[<"]([^>"]+)[>"]/,
+  ],
+  rust: [
+    /^\s*use\s+([\w:]+)/,
+    /^\s*extern\s+crate\s+(\w+)/,
+  ],
 };
 
 export function detectImportSignals(content: string, language: Language): ContextSignal[] {
