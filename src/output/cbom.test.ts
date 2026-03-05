@@ -26,6 +26,7 @@ function makeResult(findings: CodeFinding[]): CodeGradedResult {
     grade: 'C',
     baseGrade: 'C',
     modifier: '',
+    pqcDetected: false,
     findings,
     migrationNotes: [],
     summary: {

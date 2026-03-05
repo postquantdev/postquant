@@ -78,6 +78,12 @@ export function formatCodeTerminal(
   lines.push(`  Overall Grade:  ${gradeColor(result.grade)}`);
   lines.push('');
 
+  const pqcLabel = result.pqcDetected
+    ? chalk.green('Detected')
+    : chalk.dim('Not detected');
+  lines.push(`  PQC Readiness:  ${pqcLabel}`);
+  lines.push('');
+
   // Stats
   lines.push('  Stats');
   lines.push(`    Files scanned:      ${result.summary.filesScanned}`);

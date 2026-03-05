@@ -25,6 +25,7 @@ function makeCodeGradedResult(overrides: Partial<CodeGradedResult> = {}): CodeGr
     grade: 'C',
     baseGrade: 'C',
     modifier: '',
+    pqcDetected: false,
     findings: [
       makeFinding(),
       makeFinding({
@@ -242,6 +243,18 @@ describe('formatCodeTerminal', () => {
     });
     const output = stripAnsi(formatCodeTerminal(result));
     expect(output).not.toContain('src/hash.py');
+  });
+
+  it('shows PQC Readiness: Detected when pqcDetected is true', () => {
+    const output = stripAnsi(formatCodeTerminal(makeCodeGradedResult({ pqcDetected: true })));
+    expect(output).toContain('PQC Readiness');
+    expect(output).toContain('Detected');
+  });
+
+  it('shows PQC Readiness: Not detected when pqcDetected is false', () => {
+    const output = stripAnsi(formatCodeTerminal(makeCodeGradedResult({ pqcDetected: false })));
+    expect(output).toContain('PQC Readiness');
+    expect(output).toContain('Not detected');
   });
 
   it('shows no findings message for A grade', () => {
