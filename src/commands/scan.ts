@@ -5,6 +5,7 @@ import { classify } from '../scanner/classifier.js';
 import { grade, shouldFailForGrade } from '../scanner/grader.js';
 import { formatTerminal } from '../output/terminal.js';
 import { formatJson } from '../output/json.js';
+import { validateHostname, validatePort, validateFilePath } from '../utils/validate.js';
 import type { GradedResult, ScanOptions, BaseGrade } from '../types/index.js';
 
 interface ParsedHost {
@@ -12,23 +13,36 @@ interface ParsedHost {
   port: number;
 }
 
-function parseHost(input: string): ParsedHost {
+function parseHost(input: string): ParsedHost | null {
   const lastColon = input.lastIndexOf(':');
   if (lastColon === -1) {
+    if (!validateHostname(input)) return null;
     return { host: input, port: 443 };
   }
 
   const portStr = input.slice(lastColon + 1);
   const port = parseInt(portStr, 10);
 
-  if (isNaN(port) || port <= 0 || port > 65535) {
+  // If what follows the last colon doesn't look like a port number at all,
+  // treat the whole input as a hostname (e.g. IPv6 without brackets)
+  if (isNaN(port) || portStr.length === 0) {
+    if (!validateHostname(input)) return null;
     return { host: input, port: 443 };
   }
 
-  return { host: input.slice(0, lastColon), port };
+  // Port was parsed as a number — validate it strictly
+  if (!validatePort(port)) return null;
+
+  const host = input.slice(0, lastColon);
+  if (!validateHostname(host)) return null;
+
+  return { host, port };
 }
 
 function readHostsFile(filePath: string): string[] {
+  if (!validateFilePath(filePath)) {
+    throw new Error(`Invalid file path: contains prohibited characters`);
+  }
   const content = readFileSync(filePath, 'utf-8');
   return content
     .split('\n')
@@ -62,7 +76,17 @@ export async function scanCommand(
   let hadErrors = false;
 
   for (const input of allHostInputs) {
-    const { host, port } = parseHost(input);
+    const parsed = parseHost(input);
+
+    if (!parsed) {
+      hadErrors = true;
+      console.error(
+        chalk.red(`\nInvalid host: ${input} — contains prohibited characters or invalid port`),
+      );
+      continue;
+    }
+
+    const { host, port } = parsed;
 
     try {
       const scanResult = await scanHost(host, port, options.timeout);
