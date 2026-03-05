@@ -7,14 +7,14 @@ import type { OutputFormat, AnalyzeOutputFormat, BaseGrade, Language } from './t
 
 const VALID_GRADES: BaseGrade[] = ['A+', 'A', 'B', 'C', 'D', 'F'];
 const VALID_ANALYZE_FORMATS: AnalyzeOutputFormat[] = ['terminal', 'json', 'sarif', 'cbom'];
-const VALID_LANGUAGES: Language[] = ['python', 'javascript', 'go', 'java'];
+const VALID_LANGUAGES: Language[] = ['python', 'javascript', 'go', 'java', 'c', 'rust'];
 
 const program = new Command();
 
 program
   .name('postquant')
   .description('Scan TLS endpoints and source code for quantum-vulnerable cryptography')
-  .version('0.2.0');
+  .version('0.5.0');
 
 program
   .command('scan')
