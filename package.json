@@ -1,6 +1,6 @@
 {
   "name": "postquant",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Scan your code and infrastructure for quantum-vulnerable cryptography.",
   "type": "module",
   "main": "dist/index.js",
