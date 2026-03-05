@@ -49,6 +49,10 @@ export function grade(classified: ClassifiedResult): GradedResult {
 
   const displayGrade = (baseGrade + modifier) as Grade;
 
+  const pqcDetected = findings.some((f) =>
+    PQC_KEYWORDS.some((kw) => f.algorithm.toUpperCase().includes(kw)),
+  );
+
   const migrationNotes = findings
     .filter((f) => f.migration)
     .map((f) => f.migration!);
@@ -59,6 +63,7 @@ export function grade(classified: ClassifiedResult): GradedResult {
     grade: displayGrade,
     baseGrade,
     modifier,
+    pqcDetected,
     findings,
     migrationNotes,
     summary: {

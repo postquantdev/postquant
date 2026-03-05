@@ -305,6 +305,46 @@ describe('grade', () => {
     expect(result.modifier).toBe('+');
   });
 
+  it('sets pqcDetected true when PQC key exchange is negotiated', () => {
+    const result = grade(
+      makeResult([
+        finding('protocol', 'safe', 'TLS 1.3'),
+        finding('certificate', 'safe', 'ML-DSA'),
+        finding('keyExchange', 'safe', 'X25519Kyber768'),
+        finding('cipher', 'safe', 'AES-256'),
+        finding('hash', 'safe', 'SHA-384'),
+      ]),
+    );
+    expect(result.pqcDetected).toBe(true);
+  });
+
+  it('sets pqcDetected false when no PQC algorithms present', () => {
+    const result = grade(
+      makeResult([
+        finding('protocol', 'safe', 'TLS 1.3'),
+        finding('certificate', 'critical', 'ECDSA'),
+        finding('keyExchange', 'critical', 'X25519'),
+        finding('cipher', 'safe', 'AES-256'),
+        finding('hash', 'safe', 'SHA-384'),
+      ]),
+    );
+    expect(result.pqcDetected).toBe(false);
+  });
+
+  it('sets pqcDetected true even when grade is not A+', () => {
+    const result = grade(
+      makeResult([
+        finding('protocol', 'safe', 'TLS 1.3'),
+        finding('certificate', 'critical', 'ECDSA'),
+        finding('keyExchange', 'safe', 'X25519Kyber768'),
+        finding('cipher', 'safe', 'AES-256'),
+        finding('hash', 'safe', 'SHA-384'),
+      ]),
+    );
+    expect(result.pqcDetected).toBe(true);
+    expect(result.baseGrade).toBe('C');
+  });
+
   it('preserves host and port', () => {
     const classified = makeResult([
       finding('protocol', 'safe'),

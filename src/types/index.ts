@@ -66,6 +66,7 @@ export interface GradedResult {
   grade: Grade;
   baseGrade: BaseGrade;
   modifier: GradeModifier;
+  pqcDetected: boolean;
   findings: ClassifiedFinding[];
   migrationNotes: string[];
   summary: {
