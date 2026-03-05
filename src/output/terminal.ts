@@ -1,20 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import type { GradedResult, RiskLevel, Grade } from '../types/index.js';
-
-function getVersion(): string {
-  try {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const pkg = JSON.parse(
-      readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'),
-    );
-    return pkg.version;
-  } catch {
-    return '0.2.0';
-  }
-}
+import { getVersion } from '../utils/version.js';
 
 function riskIcon(risk: RiskLevel): string {
   switch (risk) {

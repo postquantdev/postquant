@@ -1,20 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import type { CodeGradedResult, CodeFinding, CryptoCategory, RiskLevel, AssessedFinding, AdjustedRisk } from '../types/index.js';
 import { isAssessedFinding } from '../types/index.js';
-
-function getVersion(): string {
-  try {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const pkg = JSON.parse(
-      readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'),
-    );
-    return pkg.version;
-  } catch {
-    return '0.1.1';
-  }
-}
+import { getVersion } from '../utils/version.js';
 
 // --- Rule definitions (Section 8.3) ---
 
