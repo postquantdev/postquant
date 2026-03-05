@@ -90,10 +90,69 @@ function processImportNames(
 }
 
 function resolveJavaScriptImports(tree: Tree): ImportMap {
-  // Placeholder — implemented in Task 5
   const modules = new Set<string>();
   const symbols = new Map<string, string>();
   const aliases = new Map<string, string>();
+
+  const root = tree.rootNode;
+
+  for (let i = 0; i < root.childCount; i++) {
+    const node = root.child(i)!;
+
+    if (node.type === 'import_statement') {
+      // import X from 'Y' / import { X } from 'Y' / import { X as Z } from 'Y'
+      const sourceNode = node.childForFieldName('source');
+      const moduleName = extractStringContent(sourceNode);
+      if (!moduleName) continue;
+
+      // Walk import_clause children
+      for (let j = 0; j < node.namedChildCount; j++) {
+        const child = node.namedChild(j)!;
+        if (child.type === 'import_clause') {
+          processJSImportClause(child, moduleName, modules, symbols, aliases);
+        }
+      }
+    } else if (node.type === 'lexical_declaration' || node.type === 'variable_declaration') {
+      // const X = require('Y') / const { X } = require('Y')
+      for (let j = 0; j < node.namedChildCount; j++) {
+        const declarator = node.namedChild(j)!;
+        if (declarator.type !== 'variable_declarator') continue;
+
+        const valueNode = declarator.childForFieldName('value');
+        if (!valueNode || valueNode.type !== 'call_expression') continue;
+
+        const funcNode = valueNode.childForFieldName('function');
+        if (!funcNode || funcNode.text !== 'require') continue;
+
+        const argsNode = valueNode.childForFieldName('arguments');
+        const moduleName = extractFirstArgString(argsNode);
+        if (!moduleName) continue;
+
+        const nameNode = declarator.childForFieldName('name');
+        if (!nameNode) continue;
+
+        if (nameNode.type === 'identifier') {
+          // const crypto = require('crypto')
+          modules.add(nameNode.text);
+        } else if (nameNode.type === 'object_pattern') {
+          // const { createHash, createHmac } = require('crypto')
+          for (let k = 0; k < nameNode.namedChildCount; k++) {
+            const prop = nameNode.namedChild(k)!;
+            if (prop.type === 'shorthand_property_identifier_pattern') {
+              symbols.set(prop.text, `${moduleName}.${prop.text}`);
+            } else if (prop.type === 'pair_pattern') {
+              const key = prop.childForFieldName('key');
+              const value = prop.childForFieldName('value');
+              if (key && value) {
+                symbols.set(value.text, `${moduleName}.${key.text}`);
+                aliases.set(value.text, key.text);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   return {
     modules,
@@ -103,4 +162,61 @@ function resolveJavaScriptImports(tree: Tree): ImportMap {
       return aliases.get(localName) ?? localName;
     },
   };
+}
+
+function processJSImportClause(
+  clause: Node,
+  moduleName: string,
+  modules: Set<string>,
+  symbols: Map<string, string>,
+  aliases: Map<string, string>,
+) {
+  for (let i = 0; i < clause.namedChildCount; i++) {
+    const child = clause.namedChild(i)!;
+
+    if (child.type === 'identifier') {
+      // Default import: import crypto from 'crypto'
+      symbols.set(child.text, moduleName);
+    } else if (child.type === 'named_imports') {
+      // Named imports: import { X, Y as Z } from 'mod'
+      for (let j = 0; j < child.namedChildCount; j++) {
+        const spec = child.namedChild(j)!;
+        if (spec.type === 'import_specifier') {
+          const nameNode = spec.childForFieldName('name');
+          const aliasNode = spec.childForFieldName('alias');
+          if (nameNode && aliasNode) {
+            symbols.set(aliasNode.text, `${moduleName}.${nameNode.text}`);
+            aliases.set(aliasNode.text, nameNode.text);
+          } else if (nameNode) {
+            symbols.set(nameNode.text, `${moduleName}.${nameNode.text}`);
+          }
+        }
+      }
+    } else if (child.type === 'namespace_import') {
+      // import * as X from 'mod'
+      const nameNode = child.namedChild(0);
+      if (nameNode) {
+        modules.add(nameNode.text);
+      }
+    }
+  }
+}
+
+function extractStringContent(node: Node | null): string | null {
+  if (!node || node.type !== 'string') return null;
+  // String node has string_fragment child
+  for (let i = 0; i < node.namedChildCount; i++) {
+    const child = node.namedChild(i)!;
+    if (child.type === 'string_fragment') return child.text;
+  }
+  return null;
+}
+
+function extractFirstArgString(argsNode: Node | null): string | null {
+  if (!argsNode) return null;
+  for (let i = 0; i < argsNode.namedChildCount; i++) {
+    const arg = argsNode.namedChild(i)!;
+    if (arg.type === 'string') return extractStringContent(arg);
+  }
+  return null;
 }
