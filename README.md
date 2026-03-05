@@ -5,34 +5,33 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/postquant)](https://www.npmjs.com/package/postquant)
 
-PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, and Java.
+PostQuant scans TLS connections and source code, reports which algorithms are vulnerable to quantum attacks, grades them A+ through F, and tells you what to migrate to. Supports Python, JavaScript/TypeScript, Go, Java, C/C++, and Rust.
 
-## What's New in v0.4.0
+## What's New in v0.6.0
 
-v0.4.0 detects hybrid post-quantum key exchanges (X25519MLKEM768) via OpenSSL probing. Cloudflare and Google both negotiate hybrid PQC — PostQuant now sees it.
+PostQuant now covers 6 languages with 97 detection patterns (81 classical + 16 PQC) and reports whether your code or TLS connections use post-quantum cryptography.
 
-## What Makes v0.3.0 Different
-
-PostQuant doesn't just find algorithms — it understands context.
-
-A naive scanner flags `uuid` for using MD5 and calls it critical. PostQuant reads the surrounding code, sees it's generating RFC 4122 checksums (not securing passwords), and adjusts the risk to low. The grade? **A**.
-
-Django's `auth/hashers.py` also uses MD5 — but for password hashing. PostQuant sees the `password` and `authenticate` signals, keeps the risk at critical, and grades it **D+**.
-
-Same algorithm. Different context. Different risk. That distinction matters.
+- **PQC readiness flag** — Every scan now includes a `pqcDetected` indicator, independent of the letter grade. See at a glance whether post-quantum algorithms are deployed.
+- **PQC detection patterns** — 16 new patterns across all 6 languages detect libraries like liboqs, pqcrypto, circl, and Bouncy Castle PQC.
+- **C/C++ and Rust support** — Full pattern coverage for OpenSSL, libsodium, wolfSSL, mbedTLS, ring, and RustCrypto.
+- **Context-aware risk assessment** — MD5 in a UUID library scores A. MD5 in a password hasher scores D+. Same algorithm, different context, different risk.
+- **Hybrid PQC detection** — X25519MLKEM768 key exchange detected via OpenSSL probing.
+- **Security hardening** — Two-layer input validation, OpenSSL version warnings.
 
 ## TLS Scan Results
 
-We scanned major sites with PostQuant v0.4.0. Cloudflare and Google now negotiate hybrid PQC key exchange:
-
 | Site | Grade | Certificate | Key Exchange | Cipher | Hash |
 |------|-------|-------------|--------------|--------|------|
-| google.com | **C+** | RSA-2048 | X25519MLKEM768 | AES-256 | SHA-384 |
-| cloudflare.com | **C+** | ECDSA P-256 | X25519MLKEM768 | AES-256 | SHA-384 |
-| stripe.com | **C+** | ECDSA P-256 | X25519 | AES-256 | SHA-384 |
-| github.com | **C** | ECDSA P-256 | X25519 | AES-256 | SHA-256 |
+| google.com | **C+** | RSA-2048 | X25519MLKEM768 :white_check_mark: | AES-256 | SHA-384 |
+| cloudflare.com | **C+** | ECDSA P-256 | X25519MLKEM768 :white_check_mark: | AES-256 | SHA-384 |
+| apple.com | **C+** | ECDSA P-256 | X25519MLKEM768 :white_check_mark: | AES-256 | SHA-384 |
+| anthropic.com | **C+** | ECDSA P-256 | X25519MLKEM768 :white_check_mark: | AES-256 | SHA-384 |
+| fbi.gov | **C+** | ECDSA P-256 | X25519MLKEM768 :white_check_mark: | AES-256 | SHA-384 |
+| chase.com | **C** | RSA-2048 | X25519 :x: | AES-256 | SHA-256 |
+| nsa.gov | **C+** | RSA-2048 | X25519 :x: | AES-256 | SHA-384 |
+| irs.gov | **C-** | RSA-4096 | secp384r1 :x: | AES-256 | SHA-256 |
 
-> Scanned with PostQuant v0.4.0 on March 4, 2026. Hybrid PQC key exchange (X25519MLKEM768) is now detected via OpenSSL probing. Grade remains C+ because certificates still use classical algorithms (RSA/ECDSA) — no CA supports PQC certificates yet.
+> Scanned with PostQuant v0.4.1+ on March 4, 2026. 24 of 55+ sites scanned have hybrid PQC deployed. No site scores above C+ — PQC certificates don't exist yet.
 
 ## Framework Scan Results
 
@@ -138,7 +137,7 @@ Most sites today score C+ or C. That's expected — almost nobody has deployed p
 
 ### Code Scanner
 
-Scan source code for quantum-vulnerable cryptographic patterns. 54 detection patterns across 4 languages (Python, JavaScript/TypeScript, Go, Java) with context-aware risk assessment.
+Scan source code for quantum-vulnerable cryptographic patterns. 97 detection patterns across 6 languages (Python, JavaScript/TypeScript, Go, Java, C/C++, Rust) with context-aware risk assessment.
 
 ```bash
 # Scan your project
@@ -211,6 +210,8 @@ postquant analyze ./src/auth.py
 
 # Filter by language
 postquant analyze ./src --language python
+postquant analyze ./src --language c
+postquant analyze ./src --language rust
 
 # JSON output
 postquant analyze ./src --format json
@@ -252,6 +253,8 @@ postquant analyze ./src --verbose
 
 +/- modifiers reflect classical crypto hygiene within each grade band.
 
+Starting in v0.6.0, scan output includes a `pqcDetected` flag indicating whether post-quantum algorithms were found, independent of the letter grade.
+
 ## GitHub Actions
 
 Add quantum vulnerability scanning to your CI/CD pipeline:
@@ -288,13 +291,16 @@ npm run dev -- analyze ./src         # Code scan from source
 
 | Phase | Target | Status |
 |-------|--------|--------|
-| TLS scanner CLI | March 2026 | v0.3.0 |
-| Code scanner + CBOM | March 2026 | v0.3.0 |
-| Context-aware risk assessment | March 2026 | v0.3.0 |
-| Hybrid PQC detection (OpenSSL probe) | March 2026 | v0.4.0 |
+| TLS scanner CLI | March 2026 | :white_check_mark: v0.1.0 |
+| Code scanner + CBOM | March 2026 | :white_check_mark: v0.2.0 |
+| Context-aware risk assessment | March 2026 | :white_check_mark: v0.3.0 |
+| Hybrid PQC detection | March 2026 | :white_check_mark: v0.4.0 |
+| Security hardening + input validation | March 2026 | :white_check_mark: v0.4.2 |
+| C/C++ and Rust support | March 2026 | :white_check_mark: v0.5.0 |
+| PQC detection patterns + readiness flag | March 2026 | :white_check_mark: v0.6.0 |
 | Migration playbook engine | April 2026 | Planned |
 | Web dashboard + Enterprise tier | May 2026 | Planned |
-| GitHub Actions Marketplace + CI/CD | June 2026 | Planned |
+| GitHub Actions Marketplace | June 2026 | Planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
