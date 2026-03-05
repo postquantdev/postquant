@@ -293,6 +293,39 @@ export function detectFunctionNameSignals(matchedLine: string): ContextSignal[] 
   return signals;
 }
 
+// ── 4b. detectScopeSignals (AST-enriched) ───────────────────────
+
+function detectScopeSignals(finding: CodeFinding): ContextSignal[] {
+  if (!finding.scopeInfo) return [];
+  const signals: ContextSignal[] = [];
+
+  if (finding.scopeInfo.isTestCode) {
+    signals.push({
+      type: 'ast-scope',
+      value: 'test-function',
+      influence: 'decreases-risk',
+    });
+  }
+
+  if (finding.scopeInfo.functionName) {
+    signals.push({
+      type: 'ast-scope',
+      value: finding.scopeInfo.functionName,
+      influence: 'neutral',
+    });
+  }
+
+  if (finding.scopeInfo.isConditionalPath) {
+    signals.push({
+      type: 'ast-scope',
+      value: 'conditional-fallback',
+      influence: 'decreases-risk',
+    });
+  }
+
+  return signals;
+}
+
 // ── 5. detectProtocolPattern ────────────────────────────────────
 
 interface ProtocolRule {
@@ -494,6 +527,7 @@ function assessSingleFinding(
   const nearbyCodeSignals = detectNearbyCodeSignals(lines, finding.line);
   const importSignals = detectImportSignals(content, finding.language);
   const functionNameSignals = detectFunctionNameSignals(finding.matchedLine);
+  const scopeSignals = detectScopeSignals(finding);
 
   // 2. Check protocol pattern (handles its own windowing)
   const importText = lines.slice(0, 50).join('\n');
@@ -505,6 +539,7 @@ function assessSingleFinding(
     ...nearbyCodeSignals,
     ...importSignals,
     ...functionNameSignals,
+    ...scopeSignals,
   ];
   if (protocolResult) {
     allSignals.push(protocolResult.signal);

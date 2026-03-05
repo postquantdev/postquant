@@ -69,6 +69,7 @@ program
   .option('--no-migration', 'Hide migration recommendations')
   .option('--show-all', 'Show all findings including low and informational risk')
   .option('--no-context', 'Skip risk assessment, use raw pattern matching only')
+  .option('--no-ast', 'Disable AST analysis (regex-only)')
   .action(async (targetPath: string, opts) => {
     const format = opts.format as AnalyzeOutputFormat;
     if (!VALID_ANALYZE_FORMATS.includes(format)) {
@@ -104,6 +105,7 @@ program
       noMigration: !opts.migration,
       showAll: opts.showAll ?? false,
       noContext: !opts.context,
+      noAst: !opts.ast,
     });
 
     console.log(output);

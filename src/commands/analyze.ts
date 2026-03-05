@@ -10,6 +10,9 @@ import { formatCodeTerminal } from '../output/terminal-code.js';
 import { formatCodeJson } from '../output/json-code.js';
 import { formatSarif } from '../output/sarif.js';
 import { formatCbom } from '../output/cbom.js';
+import { astAnalyze } from '../scanner/code/ast/analyzer.js';
+import { mergeFindings } from '../scanner/code/ast/merge.js';
+import { hasASTSupport } from '../scanner/code/ast/parser.js';
 import type { AnalyzeOptions, CodeFinding, Language, Grade } from '../types/index.js';
 
 
@@ -46,12 +49,18 @@ export async function analyzeCommand(
     const ext = extname(absPath);
     const lang = EXTENSION_MAP[ext];
     if (lang && (!options.language || options.language === lang)) {
-      const { findings, content } = await matchFile(absPath, lang);
+      const { findings: regexFindings, content } = await matchFile(absPath, lang);
       const normalizedName = basename(absPath);
-      // Normalize file paths to be relative-ish (just the basename for single files)
-      for (const f of findings) {
+      for (const f of regexFindings) {
         f.file = normalizedName;
       }
+
+      let findings = regexFindings;
+      if (!options.noAst && hasASTSupport(lang)) {
+        const astFindings = await astAnalyze(content, lang, normalizedName);
+        findings = mergeFindings(regexFindings, astFindings);
+      }
+
       allFindings.push(...findings);
       fileContents.set(normalizedName, content);
       filesScanned = 1;
@@ -72,11 +81,17 @@ export async function analyzeCommand(
     for (const file of discovered) {
       const fullPath = join(absPath, file.path);
       try {
-        const { findings, content } = await matchFile(fullPath, file.language);
-        // Normalize to relative path from scan root
-        for (const f of findings) {
+        const { findings: regexFindings, content } = await matchFile(fullPath, file.language);
+        for (const f of regexFindings) {
           f.file = file.path;
         }
+
+        let findings = regexFindings;
+        if (!options.noAst && hasASTSupport(file.language)) {
+          const astFindings = await astAnalyze(content, file.language, file.path);
+          findings = mergeFindings(regexFindings, astFindings);
+        }
+
         allFindings.push(...findings);
         fileContents.set(file.path, content);
       } catch {

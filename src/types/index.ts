@@ -250,6 +250,7 @@ export interface AnalyzeOptions {
   noMigration: boolean;
   showAll?: boolean;
   noContext?: boolean;
+  noAst?: boolean;
 }
 
 // ── Risk Assessment Types (v0.3.0) ──────────────────────────────
